@@ -5,14 +5,16 @@ Uses Google Cloud Vision + Gemini Vision for robust extraction.
 
 from google import genai
 from google.cloud import vision
-import os
 import base64
 from typing import Dict, Optional
-from dotenv import load_dotenv
 from PIL import Image
 import io
+import time
 
-load_dotenv()
+try:
+    from .config import config
+except ImportError:
+    from config import config
 
 
 class MathOCR:
@@ -25,17 +27,25 @@ class MathOCR:
     def __init__(self):
         """Initialize OCR clients."""
         # Gemini Vision for semantic LaTeX extraction
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
+        if not config.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment")
         
-        self.client = genai.Client(api_key=self.api_key)
-        self.model_name = "gemini-2.0-flash-exp"
+        # Store API key and cache client instance
+        self._api_key = config.GEMINI_API_KEY
+        self._client_instance = None
+        self.model_name = config.GEMINI_VISION_MODEL
+    
+    @property
+    def client(self):
+        """Lazy-init and cache client."""
+        if self._client_instance is None:
+            self._client_instance = genai.Client(api_key=self._api_key)
+        return self._client_instance
         
         # Google Cloud Vision (optional, falls back to Gemini-only if not configured)
         self.use_cloud_vision = False
         try:
-            if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+            if config.GOOGLE_APPLICATION_CREDENTIALS:
                 self.vision_client = vision.ImageAnnotatorClient()
                 self.use_cloud_vision = True
         except Exception:
@@ -102,10 +112,27 @@ class MathOCR:
         pil_image = Image.open(io.BytesIO(image_bytes))
         
         # Generate using new Client API
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=[prompt, pil_image]
-        )
+        # Retry logic for 429 Resource Exhausted
+        max_retries = 3
+        response = None
+        
+        for attempt in range(max_retries):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[prompt, pil_image]
+                )
+                break
+            except Exception as e:
+                # Check for 429
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    if attempt < max_retries - 1:
+                        wait = (2 ** attempt) * 5  # Exponential backoff: 5s, 10s
+                        print(f"⚠️ Rate limit hit (429). Retrying in {wait}s...")
+                        time.sleep(wait)
+                        continue
+                # If not 429 or retries exhausted, re-raise
+                raise e
         response_text = response.text.strip()
         
         # Parse response

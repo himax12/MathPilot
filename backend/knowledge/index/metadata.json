@@ -1,0 +1,1734 @@
+{
+  "model": "text-embedding-004",
+  "dimension": 768,
+  "documents": [
+    {
+      "doc_id": "3d-geometry_direction-cosines-and-direction-ratios-of-a-line",
+      "file_path": "backend\\knowledge\\base\\patterns\\3d-geometry_direction-cosines-and-direction-ratios-of-a-line.md",
+      "chapter": "3d-geometry",
+      "topic": "direction-cosines-and-direction-ratios-of-a-line",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 21
+    },
+    {
+      "doc_id": "3d-geometry_lines-and-plane",
+      "file_path": "backend\\knowledge\\base\\patterns\\3d-geometry_lines-and-plane.md",
+      "chapter": "3d-geometry",
+      "topic": "lines-and-plane",
+      "jee_frequency": 16,
+      "difficulty": "medium",
+      "question_count": 123
+    },
+    {
+      "doc_id": "3d-geometry_lines-in-space",
+      "file_path": "backend\\knowledge\\base\\patterns\\3d-geometry_lines-in-space.md",
+      "chapter": "3d-geometry",
+      "topic": "lines-in-space",
+      "jee_frequency": 18,
+      "difficulty": "medium",
+      "question_count": 131
+    },
+    {
+      "doc_id": "3d-geometry_plane-in-space",
+      "file_path": "backend\\knowledge\\base\\patterns\\3d-geometry_plane-in-space.md",
+      "chapter": "3d-geometry",
+      "topic": "plane-in-space",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 86
+    },
+    {
+      "doc_id": "application-of-derivatives_maxima-and-minima",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_maxima-and-minima.md",
+      "chapter": "application-of-derivatives",
+      "topic": "maxima-and-minima",
+      "jee_frequency": 22,
+      "difficulty": "medium",
+      "question_count": 99
+    },
+    {
+      "doc_id": "application-of-derivatives_mean-value-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_mean-value-theorem.md",
+      "chapter": "application-of-derivatives",
+      "topic": "mean-value-theorem",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 13
+    },
+    {
+      "doc_id": "application-of-derivatives_monotonicity",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_monotonicity.md",
+      "chapter": "application-of-derivatives",
+      "topic": "monotonicity",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 41
+    },
+    {
+      "doc_id": "application-of-derivatives_nature-of-roots",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_nature-of-roots.md",
+      "chapter": "application-of-derivatives",
+      "topic": "nature-of-roots",
+      "jee_frequency": 1,
+      "difficulty": "easy",
+      "question_count": 1
+    },
+    {
+      "doc_id": "application-of-derivatives_rate-of-change-of-quantity",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_rate-of-change-of-quantity.md",
+      "chapter": "application-of-derivatives",
+      "topic": "rate-of-change-of-quantity",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 17
+    },
+    {
+      "doc_id": "application-of-derivatives_tangent-and-normal",
+      "file_path": "backend\\knowledge\\base\\patterns\\application-of-derivatives_tangent-and-normal.md",
+      "chapter": "application-of-derivatives",
+      "topic": "tangent-and-normal",
+      "jee_frequency": 16,
+      "difficulty": "medium",
+      "question_count": 52
+    },
+    {
+      "doc_id": "area-under-the-curves_area-bounded-between-the-curves",
+      "file_path": "backend\\knowledge\\base\\patterns\\area-under-the-curves_area-bounded-between-the-curves.md",
+      "chapter": "area-under-the-curves",
+      "topic": "area-bounded-between-the-curves",
+      "jee_frequency": 23,
+      "difficulty": "medium",
+      "question_count": 141
+    },
+    {
+      "doc_id": "area-under-the-curves_area-under-simple-curves-in-standard-forms",
+      "file_path": "backend\\knowledge\\base\\patterns\\area-under-the-curves_area-under-simple-curves-in-standard-forms.md",
+      "chapter": "area-under-the-curves",
+      "topic": "area-under-simple-curves-in-standard-forms",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "binomial-theorem_binomial-theorem-for-any-index",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_binomial-theorem-for-any-index.md",
+      "chapter": "binomial-theorem",
+      "topic": "binomial-theorem-for-any-index",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "binomial-theorem_divisibility-concept-and-remainder-concept",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_divisibility-concept-and-remainder-concept.md",
+      "chapter": "binomial-theorem",
+      "topic": "divisibility-concept-and-remainder-concept",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 30
+    },
+    {
+      "doc_id": "binomial-theorem_general-term",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_general-term.md",
+      "chapter": "binomial-theorem",
+      "topic": "general-term",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 81
+    },
+    {
+      "doc_id": "binomial-theorem_integral-and-fractional-part-of-a-number",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_integral-and-fractional-part-of-a-number.md",
+      "chapter": "binomial-theorem",
+      "topic": "integral-and-fractional-part-of-a-number",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "binomial-theorem_middle-term",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_middle-term.md",
+      "chapter": "binomial-theorem",
+      "topic": "middle-term",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "binomial-theorem_multinomial-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_multinomial-theorem.md",
+      "chapter": "binomial-theorem",
+      "topic": "multinomial-theorem",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "binomial-theorem_negative-and-fractional-index",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_negative-and-fractional-index.md",
+      "chapter": "binomial-theorem",
+      "topic": "negative-and-fractional-index",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "binomial-theorem_problems-based-on-binomial-co-efficient-and-collection-of-binomial-co-efficient",
+      "file_path": "backend\\knowledge\\base\\patterns\\binomial-theorem_problems-based-on-binomial-co-efficient-and-collection-of-binomial-co-efficient.md",
+      "chapter": "binomial-theorem",
+      "topic": "problems-based-on-binomial-co-efficient-and-collection-of-binomial-co-efficient",
+      "jee_frequency": 20,
+      "difficulty": "medium",
+      "question_count": 95
+    },
+    {
+      "doc_id": "circle_basic-theorems-of-a-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_basic-theorems-of-a-circle.md",
+      "chapter": "circle",
+      "topic": "basic-theorems-of-a-circle",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 28
+    },
+    {
+      "doc_id": "circle_chord-of-contact",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_chord-of-contact.md",
+      "chapter": "circle",
+      "topic": "chord-of-contact",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "circle_chord-with-a-given-middle-point",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_chord-with-a-given-middle-point.md",
+      "chapter": "circle",
+      "topic": "chord-with-a-given-middle-point",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 29
+    },
+    {
+      "doc_id": "circle_director-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_director-circle.md",
+      "chapter": "circle",
+      "topic": "director-circle",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "circle_family-of-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_family-of-circle.md",
+      "chapter": "circle",
+      "topic": "family-of-circle",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 18
+    },
+    {
+      "doc_id": "circle_intercepts-of-a-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_intercepts-of-a-circle.md",
+      "chapter": "circle",
+      "topic": "intercepts-of-a-circle",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 15
+    },
+    {
+      "doc_id": "circle_number-of-common-tangents-and-position-of-two-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_number-of-common-tangents-and-position-of-two-circle.md",
+      "chapter": "circle",
+      "topic": "number-of-common-tangents-and-position-of-two-circle",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 20
+    },
+    {
+      "doc_id": "circle_orthogonality-of-two-circles",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_orthogonality-of-two-circles.md",
+      "chapter": "circle",
+      "topic": "orthogonality-of-two-circles",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "circle_pair-of-tangents",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_pair-of-tangents.md",
+      "chapter": "circle",
+      "topic": "pair-of-tangents",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "circle_parametric-form-of-a-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_parametric-form-of-a-circle.md",
+      "chapter": "circle",
+      "topic": "parametric-form-of-a-circle",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "circle_position-of-a-point-with-respect-to-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_position-of-a-point-with-respect-to-circle.md",
+      "chapter": "circle",
+      "topic": "position-of-a-point-with-respect-to-circle",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 11
+    },
+    {
+      "doc_id": "circle_radical-axis",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_radical-axis.md",
+      "chapter": "circle",
+      "topic": "radical-axis",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "circle_tangent-and-normal",
+      "file_path": "backend\\knowledge\\base\\patterns\\circle_tangent-and-normal.md",
+      "chapter": "circle",
+      "topic": "tangent-and-normal",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 33
+    },
+    {
+      "doc_id": "complex-numbers_algebra-of-complex-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_algebra-of-complex-numbers.md",
+      "chapter": "complex-numbers",
+      "topic": "algebra-of-complex-numbers",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 45
+    },
+    {
+      "doc_id": "complex-numbers_applications-of-complex-numbers-in-coordinate-geometry",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_applications-of-complex-numbers-in-coordinate-geometry.md",
+      "chapter": "complex-numbers",
+      "topic": "applications-of-complex-numbers-in-coordinate-geometry",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 51
+    },
+    {
+      "doc_id": "complex-numbers_argument-of-complex-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_argument-of-complex-numbers.md",
+      "chapter": "complex-numbers",
+      "topic": "argument-of-complex-numbers",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 17
+    },
+    {
+      "doc_id": "complex-numbers_conjugate-of-complex-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_conjugate-of-complex-numbers.md",
+      "chapter": "complex-numbers",
+      "topic": "conjugate-of-complex-numbers",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 14
+    },
+    {
+      "doc_id": "complex-numbers_cube-roots-of-unity",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_cube-roots-of-unity.md",
+      "chapter": "complex-numbers",
+      "topic": "cube-roots-of-unity",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "complex-numbers_de-moivres-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_de-moivres-theorem.md",
+      "chapter": "complex-numbers",
+      "topic": "de-moivres-theorem",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 15
+    },
+    {
+      "doc_id": "complex-numbers_modulus-of-complex-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_modulus-of-complex-numbers.md",
+      "chapter": "complex-numbers",
+      "topic": "modulus-of-complex-numbers",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 30
+    },
+    {
+      "doc_id": "complex-numbers_nth-roots-of-unity",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_nth-roots-of-unity.md",
+      "chapter": "complex-numbers",
+      "topic": "nth-roots-of-unity",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "complex-numbers_square-root-of-a-complex-number",
+      "file_path": "backend\\knowledge\\base\\patterns\\complex-numbers_square-root-of-a-complex-number.md",
+      "chapter": "complex-numbers",
+      "topic": "square-root-of-a-complex-number",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "definite-integration_definite-integral-as-a-limit-of-sum",
+      "file_path": "backend\\knowledge\\base\\patterns\\definite-integration_definite-integral-as-a-limit-of-sum.md",
+      "chapter": "definite-integration",
+      "topic": "definite-integral-as-a-limit-of-sum",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 24
+    },
+    {
+      "doc_id": "definite-integration_limits-of-algebric-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\definite-integration_limits-of-algebric-function.md",
+      "chapter": "definite-integration",
+      "topic": "limits-of-algebric-function",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "definite-integration_newton-lebnitz-rule-of-differentiation",
+      "file_path": "backend\\knowledge\\base\\patterns\\definite-integration_newton-lebnitz-rule-of-differentiation.md",
+      "chapter": "definite-integration",
+      "topic": "newton-lebnitz-rule-of-differentiation",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 37
+    },
+    {
+      "doc_id": "definite-integration_properties-of-definite-integration",
+      "file_path": "backend\\knowledge\\base\\patterns\\definite-integration_properties-of-definite-integration.md",
+      "chapter": "definite-integration",
+      "topic": "properties-of-definite-integration",
+      "jee_frequency": 23,
+      "difficulty": "medium",
+      "question_count": 238
+    },
+    {
+      "doc_id": "differential-equations_formation-of-differential-equations",
+      "file_path": "backend\\knowledge\\base\\patterns\\differential-equations_formation-of-differential-equations.md",
+      "chapter": "differential-equations",
+      "topic": "formation-of-differential-equations",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 19
+    },
+    {
+      "doc_id": "differential-equations_linear-differential-equations",
+      "file_path": "backend\\knowledge\\base\\patterns\\differential-equations_linear-differential-equations.md",
+      "chapter": "differential-equations",
+      "topic": "linear-differential-equations",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 95
+    },
+    {
+      "doc_id": "differential-equations_order-and-degree",
+      "file_path": "backend\\knowledge\\base\\patterns\\differential-equations_order-and-degree.md",
+      "chapter": "differential-equations",
+      "topic": "order-and-degree",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "differential-equations_solution-of-differential-equations-by-method-of-separation-variables-and-homogeneous",
+      "file_path": "backend\\knowledge\\base\\patterns\\differential-equations_solution-of-differential-equations-by-method-of-separation-variables-and-homogeneous.md",
+      "chapter": "differential-equations",
+      "topic": "solution-of-differential-equations-by-method-of-separation-variables-and-homogeneous",
+      "jee_frequency": 17,
+      "difficulty": "medium",
+      "question_count": 106
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-a-function-with-respect-to-another-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-a-function-with-respect-to-another-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-a-function-with-respect-to-another-function",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-composite-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-composite-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-composite-function",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-implicit-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-implicit-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-implicit-function",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 14
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-inverse-trigonometric-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-inverse-trigonometric-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-inverse-trigonometric-function",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 12
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-logarithmic-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-logarithmic-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-logarithmic-function",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 11
+    },
+    {
+      "doc_id": "differentiation_differentiation-of-parametric-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_differentiation-of-parametric-function.md",
+      "chapter": "differentiation",
+      "topic": "differentiation-of-parametric-function",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "differentiation_methods-of-differentiation",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_methods-of-differentiation.md",
+      "chapter": "differentiation",
+      "topic": "methods-of-differentiation",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 11
+    },
+    {
+      "doc_id": "differentiation_successive-differentiation",
+      "file_path": "backend\\knowledge\\base\\patterns\\differentiation_successive-differentiation.md",
+      "chapter": "differentiation",
+      "topic": "successive-differentiation",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 19
+    },
+    {
+      "doc_id": "ellipse_chord-of-ellipse",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_chord-of-ellipse.md",
+      "chapter": "ellipse",
+      "topic": "chord-of-ellipse",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "ellipse_common-tangent",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_common-tangent.md",
+      "chapter": "ellipse",
+      "topic": "common-tangent",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "ellipse_locus",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_locus.md",
+      "chapter": "ellipse",
+      "topic": "locus",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "ellipse_normal-to-ellipse",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_normal-to-ellipse.md",
+      "chapter": "ellipse",
+      "topic": "normal-to-ellipse",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "ellipse_position-of-point-and-chord-joining-of-two-points",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_position-of-point-and-chord-joining-of-two-points.md",
+      "chapter": "ellipse",
+      "topic": "position-of-point-and-chord-joining-of-two-points",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "ellipse_question-based-on-basic-definition-and-parametric-representation",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_question-based-on-basic-definition-and-parametric-representation.md",
+      "chapter": "ellipse",
+      "topic": "question-based-on-basic-definition-and-parametric-representation",
+      "jee_frequency": 16,
+      "difficulty": "medium",
+      "question_count": 45
+    },
+    {
+      "doc_id": "ellipse_tangent-to-ellipse",
+      "file_path": "backend\\knowledge\\base\\patterns\\ellipse_tangent-to-ellipse.md",
+      "chapter": "ellipse",
+      "topic": "tangent-to-ellipse",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 23
+    },
+    {
+      "doc_id": "functions_classification-of-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_classification-of-functions.md",
+      "chapter": "functions",
+      "topic": "classification-of-functions",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 36
+    },
+    {
+      "doc_id": "functions_composite-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_composite-functions.md",
+      "chapter": "functions",
+      "topic": "composite-functions",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 31
+    },
+    {
+      "doc_id": "functions_domain",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_domain.md",
+      "chapter": "functions",
+      "topic": "domain",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 22
+    },
+    {
+      "doc_id": "functions_even-and-odd-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_even-and-odd-functions.md",
+      "chapter": "functions",
+      "topic": "even-and-odd-functions",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "functions_functional-equations",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_functional-equations.md",
+      "chapter": "functions",
+      "topic": "functional-equations",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 39
+    },
+    {
+      "doc_id": "functions_inverse-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_inverse-functions.md",
+      "chapter": "functions",
+      "topic": "inverse-functions",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "functions_periodic-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_periodic-functions.md",
+      "chapter": "functions",
+      "topic": "periodic-functions",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "functions_range",
+      "file_path": "backend\\knowledge\\base\\patterns\\functions_range.md",
+      "chapter": "functions",
+      "topic": "range",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 16
+    },
+    {
+      "doc_id": "height-and-distance_height-and-distance",
+      "file_path": "backend\\knowledge\\base\\patterns\\height-and-distance_height-and-distance.md",
+      "chapter": "height-and-distance",
+      "topic": "height-and-distance",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 41
+    },
+    {
+      "doc_id": "hyperbola_common-tangent",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_common-tangent.md",
+      "chapter": "hyperbola",
+      "topic": "common-tangent",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "hyperbola_locus",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_locus.md",
+      "chapter": "hyperbola",
+      "topic": "locus",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "hyperbola_normal-to-hyperbola",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_normal-to-hyperbola.md",
+      "chapter": "hyperbola",
+      "topic": "normal-to-hyperbola",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 11
+    },
+    {
+      "doc_id": "hyperbola_position-of-point-and-chord-joining-of-two-points",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_position-of-point-and-chord-joining-of-two-points.md",
+      "chapter": "hyperbola",
+      "topic": "position-of-point-and-chord-joining-of-two-points",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "hyperbola_question-based-on-basic-definition-and-parametric-representation",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_question-based-on-basic-definition-and-parametric-representation.md",
+      "chapter": "hyperbola",
+      "topic": "question-based-on-basic-definition-and-parametric-representation",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 42
+    },
+    {
+      "doc_id": "hyperbola_tangent-to-hyperbola",
+      "file_path": "backend\\knowledge\\base\\patterns\\hyperbola_tangent-to-hyperbola.md",
+      "chapter": "hyperbola",
+      "topic": "tangent-to-hyperbola",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 16
+    },
+    {
+      "doc_id": "indefinite-integrals_integration-by-partial-fraction",
+      "file_path": "backend\\knowledge\\base\\patterns\\indefinite-integrals_integration-by-partial-fraction.md",
+      "chapter": "indefinite-integrals",
+      "topic": "integration-by-partial-fraction",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "indefinite-integrals_integration-by-parts",
+      "file_path": "backend\\knowledge\\base\\patterns\\indefinite-integrals_integration-by-parts.md",
+      "chapter": "indefinite-integrals",
+      "topic": "integration-by-parts",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "indefinite-integrals_integration-by-substitution",
+      "file_path": "backend\\knowledge\\base\\patterns\\indefinite-integrals_integration-by-substitution.md",
+      "chapter": "indefinite-integrals",
+      "topic": "integration-by-substitution",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 55
+    },
+    {
+      "doc_id": "indefinite-integrals_standard-integral",
+      "file_path": "backend\\knowledge\\base\\patterns\\indefinite-integrals_standard-integral.md",
+      "chapter": "indefinite-integrals",
+      "topic": "standard-integral",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 18
+    },
+    {
+      "doc_id": "inverse-trigonometric-functions_domain-and-range-of-inverse-trigonometric-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\inverse-trigonometric-functions_domain-and-range-of-inverse-trigonometric-functions.md",
+      "chapter": "inverse-trigonometric-functions",
+      "topic": "domain-and-range-of-inverse-trigonometric-functions",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 15
+    },
+    {
+      "doc_id": "inverse-trigonometric-functions_principal-value-of-inverse-trigonometric-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\inverse-trigonometric-functions_principal-value-of-inverse-trigonometric-functions.md",
+      "chapter": "inverse-trigonometric-functions",
+      "topic": "principal-value-of-inverse-trigonometric-functions",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 16
+    },
+    {
+      "doc_id": "inverse-trigonometric-functions_properties-of-inverse-trigonometric-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\inverse-trigonometric-functions_properties-of-inverse-trigonometric-functions.md",
+      "chapter": "inverse-trigonometric-functions",
+      "topic": "properties-of-inverse-trigonometric-functions",
+      "jee_frequency": 14,
+      "difficulty": "medium",
+      "question_count": 51
+    },
+    {
+      "doc_id": "inverse-trigonometric-functions_sum-upto-n-terms-and-infinite-terms-of-inverse-series",
+      "file_path": "backend\\knowledge\\base\\patterns\\inverse-trigonometric-functions_sum-upto-n-terms-and-infinite-terms-of-inverse-series.md",
+      "chapter": "inverse-trigonometric-functions",
+      "topic": "sum-upto-n-terms-and-infinite-terms-of-inverse-series",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 5
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_continuity",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_continuity.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "continuity",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 60
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_differentiability",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_differentiability.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "differentiability",
+      "jee_frequency": 18,
+      "difficulty": "medium",
+      "question_count": 75
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_existance-of-limits",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_existance-of-limits.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "existance-of-limits",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_limits-of-algebric-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_limits-of-algebric-function.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "limits-of-algebric-function",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 37
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_limits-of-exponential-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_limits-of-exponential-functions.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "limits-of-exponential-functions",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 22
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_limits-of-logarithmic-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_limits-of-logarithmic-functions.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "limits-of-logarithmic-functions",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "limits-continuity-and-differentiability_limits-of-trigonometric-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\limits-continuity-and-differentiability_limits-of-trigonometric-functions.md",
+      "chapter": "limits-continuity-and-differentiability",
+      "topic": "limits-of-trigonometric-functions",
+      "jee_frequency": 17,
+      "difficulty": "medium",
+      "question_count": 58
+    },
+    {
+      "doc_id": "logarithm_logarithm-inequalities",
+      "file_path": "backend\\knowledge\\base\\patterns\\logarithm_logarithm-inequalities.md",
+      "chapter": "logarithm",
+      "topic": "logarithm-inequalities",
+      "jee_frequency": 1,
+      "difficulty": "hard",
+      "question_count": 1
+    },
+    {
+      "doc_id": "logarithm_logarithmic-equations",
+      "file_path": "backend\\knowledge\\base\\patterns\\logarithm_logarithmic-equations.md",
+      "chapter": "logarithm",
+      "topic": "logarithmic-equations",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "mathematical-induction_mathematical-induction",
+      "file_path": "backend\\knowledge\\base\\patterns\\mathematical-induction_mathematical-induction.md",
+      "chapter": "mathematical-induction",
+      "topic": "mathematical-induction",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "mathematical-reasoning_logical-connectives",
+      "file_path": "backend\\knowledge\\base\\patterns\\mathematical-reasoning_logical-connectives.md",
+      "chapter": "mathematical-reasoning",
+      "topic": "logical-connectives",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 97
+    },
+    {
+      "doc_id": "mathematical-reasoning_logical-statement",
+      "file_path": "backend\\knowledge\\base\\patterns\\mathematical-reasoning_logical-statement.md",
+      "chapter": "mathematical-reasoning",
+      "topic": "logical-statement",
+      "jee_frequency": 12,
+      "difficulty": "easy",
+      "question_count": 25
+    },
+    {
+      "doc_id": "matrices-and-determinants_adjoint-of-a-matrix",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_adjoint-of-a-matrix.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "adjoint-of-a-matrix",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 17
+    },
+    {
+      "doc_id": "matrices-and-determinants_basic-of-matrix",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_basic-of-matrix.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "basic-of-matrix",
+      "jee_frequency": 2,
+      "difficulty": "hard",
+      "question_count": 2
+    },
+    {
+      "doc_id": "matrices-and-determinants_expansion-of-determinant",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_expansion-of-determinant.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "expansion-of-determinant",
+      "jee_frequency": 17,
+      "difficulty": "medium",
+      "question_count": 52
+    },
+    {
+      "doc_id": "matrices-and-determinants_inverse-of-a-matrix",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_inverse-of-a-matrix.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "inverse-of-a-matrix",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 22
+    },
+    {
+      "doc_id": "matrices-and-determinants_multiplication-of-matrices",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_multiplication-of-matrices.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "multiplication-of-matrices",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 19
+    },
+    {
+      "doc_id": "matrices-and-determinants_operations-on-matrices",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_operations-on-matrices.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "operations-on-matrices",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 32
+    },
+    {
+      "doc_id": "matrices-and-determinants_properties-of-determinants",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_properties-of-determinants.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "properties-of-determinants",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 45
+    },
+    {
+      "doc_id": "matrices-and-determinants_solutions-of-system-of-linear-equations-in-two-or-three-variables-using-determinants-and-matrices",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_solutions-of-system-of-linear-equations-in-two-or-three-variables-using-determinants-and-matrices.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "solutions-of-system-of-linear-equations-in-two-or-three-variables-using-determinants-and-matrices",
+      "jee_frequency": 17,
+      "difficulty": "medium",
+      "question_count": 117
+    },
+    {
+      "doc_id": "matrices-and-determinants_symmetric-and-skew-symmetric-matrices",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_symmetric-and-skew-symmetric-matrices.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "symmetric-and-skew-symmetric-matrices",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 12
+    },
+    {
+      "doc_id": "matrices-and-determinants_trace-of-a-matrix",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_trace-of-a-matrix.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "trace-of-a-matrix",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 12
+    },
+    {
+      "doc_id": "matrices-and-determinants_transpose-of-a-matrix",
+      "file_path": "backend\\knowledge\\base\\patterns\\matrices-and-determinants_transpose-of-a-matrix.md",
+      "chapter": "matrices-and-determinants",
+      "topic": "transpose-of-a-matrix",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 12
+    },
+    {
+      "doc_id": "parabola_chord-of-contact",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_chord-of-contact.md",
+      "chapter": "parabola",
+      "topic": "chord-of-contact",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "parabola_chord-of-parabola",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_chord-of-parabola.md",
+      "chapter": "parabola",
+      "topic": "chord-of-parabola",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 19
+    },
+    {
+      "doc_id": "parabola_common-tangent",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_common-tangent.md",
+      "chapter": "parabola",
+      "topic": "common-tangent",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 22
+    },
+    {
+      "doc_id": "parabola_locus",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_locus.md",
+      "chapter": "parabola",
+      "topic": "locus",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "parabola_normal-to-parabola",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_normal-to-parabola.md",
+      "chapter": "parabola",
+      "topic": "normal-to-parabola",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 16
+    },
+    {
+      "doc_id": "parabola_pair-of-tangents",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_pair-of-tangents.md",
+      "chapter": "parabola",
+      "topic": "pair-of-tangents",
+      "jee_frequency": 1,
+      "difficulty": "easy",
+      "question_count": 1
+    },
+    {
+      "doc_id": "parabola_position-of-point-and-chord-joining-of-two-points",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_position-of-point-and-chord-joining-of-two-points.md",
+      "chapter": "parabola",
+      "topic": "position-of-point-and-chord-joining-of-two-points",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 12
+    },
+    {
+      "doc_id": "parabola_question-based-on-basic-definition-and-parametric-representation",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_question-based-on-basic-definition-and-parametric-representation.md",
+      "chapter": "parabola",
+      "topic": "question-based-on-basic-definition-and-parametric-representation",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 18
+    },
+    {
+      "doc_id": "parabola_tangent-to-parabola",
+      "file_path": "backend\\knowledge\\base\\patterns\\parabola_tangent-to-parabola.md",
+      "chapter": "parabola",
+      "topic": "tangent-to-parabola",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 38
+    },
+    {
+      "doc_id": "permutations-and-combinations_application-of-permutations-and-combination-in-geometry",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_application-of-permutations-and-combination-in-geometry.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "application-of-permutations-and-combination-in-geometry",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "permutations-and-combinations_circular-permutations",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_circular-permutations.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "circular-permutations",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "permutations-and-combinations_conditional-combinations",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_conditional-combinations.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "conditional-combinations",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 36
+    },
+    {
+      "doc_id": "permutations-and-combinations_conditional-permutations",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_conditional-permutations.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "conditional-permutations",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 53
+    },
+    {
+      "doc_id": "permutations-and-combinations_dearrangement",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_dearrangement.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "dearrangement",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "permutations-and-combinations_divisibility-of-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_divisibility-of-numbers.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "divisibility-of-numbers",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "permutations-and-combinations_factorial",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_factorial.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "factorial",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "permutations-and-combinations_number-of-combinations",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_number-of-combinations.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "number-of-combinations",
+      "jee_frequency": 18,
+      "difficulty": "medium",
+      "question_count": 45
+    },
+    {
+      "doc_id": "permutations-and-combinations_number-of-permutations",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_number-of-permutations.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "number-of-permutations",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 38
+    },
+    {
+      "doc_id": "permutations-and-combinations_sum-of-numbers",
+      "file_path": "backend\\knowledge\\base\\patterns\\permutations-and-combinations_sum-of-numbers.md",
+      "chapter": "permutations-and-combinations",
+      "topic": "sum-of-numbers",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "probability_bayes-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_bayes-theorem.md",
+      "chapter": "probability",
+      "topic": "bayes-theorem",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 15
+    },
+    {
+      "doc_id": "probability_binomial-distribution",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_binomial-distribution.md",
+      "chapter": "probability",
+      "topic": "binomial-distribution",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 36
+    },
+    {
+      "doc_id": "probability_classical-defininition-of-probability",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_classical-defininition-of-probability.md",
+      "chapter": "probability",
+      "topic": "classical-defininition-of-probability",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 49
+    },
+    {
+      "doc_id": "probability_conditional-probability-and-multiplication-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_conditional-probability-and-multiplication-theorem.md",
+      "chapter": "probability",
+      "topic": "conditional-probability-and-multiplication-theorem",
+      "jee_frequency": 16,
+      "difficulty": "medium",
+      "question_count": 40
+    },
+    {
+      "doc_id": "probability_permutation-and-combination-based-problem",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_permutation-and-combination-based-problem.md",
+      "chapter": "probability",
+      "topic": "permutation-and-combination-based-problem",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 30
+    },
+    {
+      "doc_id": "probability_probability-distribution-of-a-random-variable",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_probability-distribution-of-a-random-variable.md",
+      "chapter": "probability",
+      "topic": "probability-distribution-of-a-random-variable",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 29
+    },
+    {
+      "doc_id": "probability_total-probability-theorem",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_total-probability-theorem.md",
+      "chapter": "probability",
+      "topic": "total-probability-theorem",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "probability_venn-diagram-and-set-theory",
+      "file_path": "backend\\knowledge\\base\\patterns\\probability_venn-diagram-and-set-theory.md",
+      "chapter": "probability",
+      "topic": "venn-diagram-and-set-theory",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 14
+    },
+    {
+      "doc_id": "properties-of-triangle_area-of-triangle",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_area-of-triangle.md",
+      "chapter": "properties-of-triangle",
+      "topic": "area-of-triangle",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "properties-of-triangle_circumcenter-incenter-and-orthocenter",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_circumcenter-incenter-and-orthocenter.md",
+      "chapter": "properties-of-triangle",
+      "topic": "circumcenter-incenter-and-orthocenter",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "properties-of-triangle_cosine-rule",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_cosine-rule.md",
+      "chapter": "properties-of-triangle",
+      "topic": "cosine-rule",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "properties-of-triangle_ex-circle",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_ex-circle.md",
+      "chapter": "properties-of-triangle",
+      "topic": "ex-circle",
+      "jee_frequency": 1,
+      "difficulty": "easy",
+      "question_count": 1
+    },
+    {
+      "doc_id": "properties-of-triangle_half-angle-formulae",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_half-angle-formulae.md",
+      "chapter": "properties-of-triangle",
+      "topic": "half-angle-formulae",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "properties-of-triangle_mediun-and-angle-bisector",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_mediun-and-angle-bisector.md",
+      "chapter": "properties-of-triangle",
+      "topic": "mediun-and-angle-bisector",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "properties-of-triangle_sine-rule",
+      "file_path": "backend\\knowledge\\base\\patterns\\properties-of-triangle_sine-rule.md",
+      "chapter": "properties-of-triangle",
+      "topic": "sine-rule",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_algebraic-equations-of-higher-degree",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_algebraic-equations-of-higher-degree.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "algebraic-equations-of-higher-degree",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 14
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_common-roots",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_common-roots.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "common-roots",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_graph-and-sign-of-quadratic-expression",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_graph-and-sign-of-quadratic-expression.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "graph-and-sign-of-quadratic-expression",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_greatest-integer-and-fractional-part-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_greatest-integer-and-fractional-part-functions.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "greatest-integer-and-fractional-part-functions",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_inequalities",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_inequalities.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "inequalities",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 8
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_location-of-roots",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_location-of-roots.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "location-of-roots",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 6
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_modulus-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_modulus-function.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "modulus-function",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 22
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_nature-of-roots",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_nature-of-roots.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "nature-of-roots",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 30
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_range-of-quadratic-expression",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_range-of-quadratic-expression.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "range-of-quadratic-expression",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "quadratic-equation-and-inequalities_relation-between-roots-and-coefficients",
+      "file_path": "backend\\knowledge\\base\\patterns\\quadratic-equation-and-inequalities_relation-between-roots-and-coefficients.md",
+      "chapter": "quadratic-equation-and-inequalities",
+      "topic": "relation-between-roots-and-coefficients",
+      "jee_frequency": 19,
+      "difficulty": "medium",
+      "question_count": 80
+    },
+    {
+      "doc_id": "sequences-and-series_am-gm-and-hm",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_am-gm-and-hm.md",
+      "chapter": "sequences-and-series",
+      "topic": "am-gm-and-hm",
+      "jee_frequency": 9,
+      "difficulty": "medium",
+      "question_count": 18
+    },
+    {
+      "doc_id": "sequences-and-series_arithmetic-progression",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_arithmetic-progression.md",
+      "chapter": "sequences-and-series",
+      "topic": "arithmetic-progression",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 82
+    },
+    {
+      "doc_id": "sequences-and-series_arithmetico-geometric-progression",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_arithmetico-geometric-progression.md",
+      "chapter": "sequences-and-series",
+      "topic": "arithmetico-geometric-progression",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "sequences-and-series_geometric-progression",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_geometric-progression.md",
+      "chapter": "sequences-and-series",
+      "topic": "geometric-progression",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 56
+    },
+    {
+      "doc_id": "sequences-and-series_harmonic-progression",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_harmonic-progression.md",
+      "chapter": "sequences-and-series",
+      "topic": "harmonic-progression",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "sequences-and-series_summation-of-series",
+      "file_path": "backend\\knowledge\\base\\patterns\\sequences-and-series_summation-of-series.md",
+      "chapter": "sequences-and-series",
+      "topic": "summation-of-series",
+      "jee_frequency": 20,
+      "difficulty": "medium",
+      "question_count": 109
+    },
+    {
+      "doc_id": "sets-and-relations_number-of-sets-and-relations",
+      "file_path": "backend\\knowledge\\base\\patterns\\sets-and-relations_number-of-sets-and-relations.md",
+      "chapter": "sets-and-relations",
+      "topic": "number-of-sets-and-relations",
+      "jee_frequency": 11,
+      "difficulty": "medium",
+      "question_count": 47
+    },
+    {
+      "doc_id": "sets-and-relations_symmetric-transitive-and-reflexive-properties",
+      "file_path": "backend\\knowledge\\base\\patterns\\sets-and-relations_symmetric-transitive-and-reflexive-properties.md",
+      "chapter": "sets-and-relations",
+      "topic": "symmetric-transitive-and-reflexive-properties",
+      "jee_frequency": 13,
+      "difficulty": "medium",
+      "question_count": 47
+    },
+    {
+      "doc_id": "sets-and-relations_venn-diagram",
+      "file_path": "backend\\knowledge\\base\\patterns\\sets-and-relations_venn-diagram.md",
+      "chapter": "sets-and-relations",
+      "topic": "venn-diagram",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 13
+    },
+    {
+      "doc_id": "statistics_calculation-of-mean-median-and-mode-of-grouped-and-ungrouped-data",
+      "file_path": "backend\\knowledge\\base\\patterns\\statistics_calculation-of-mean-median-and-mode-of-grouped-and-ungrouped-data.md",
+      "chapter": "statistics",
+      "topic": "calculation-of-mean-median-and-mode-of-grouped-and-ungrouped-data",
+      "jee_frequency": 13,
+      "difficulty": "easy",
+      "question_count": 17
+    },
+    {
+      "doc_id": "statistics_calculation-of-standard-deviation-variance-and-mean-deviation-of-grouped-and-ungrouped-data",
+      "file_path": "backend\\knowledge\\base\\patterns\\statistics_calculation-of-standard-deviation-variance-and-mean-deviation-of-grouped-and-ungrouped-data.md",
+      "chapter": "statistics",
+      "topic": "calculation-of-standard-deviation-variance-and-mean-deviation-of-grouped-and-ungrouped-data",
+      "jee_frequency": 21,
+      "difficulty": "medium",
+      "question_count": 117
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_angle-between-two-lines",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_angle-between-two-lines.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "angle-between-two-lines",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 13
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_angle-bisector",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_angle-bisector.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "angle-bisector",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 6
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_area-of-triangle-and-condition-of-collinearity",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_area-of-triangle-and-condition-of-collinearity.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "area-of-triangle-and-condition-of-collinearity",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 17
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_centers-of-triangle",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_centers-of-triangle.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "centers-of-triangle",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 31
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_condition-of-concurrency",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_condition-of-concurrency.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "condition-of-concurrency",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_distance-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_distance-formula.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "distance-formula",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 4
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_distance-of-a-point-from-a-line",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_distance-of-a-point-from-a-line.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "distance-of-a-point-from-a-line",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 17
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_family-of-straight-line",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_family-of-straight-line.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "family-of-straight-line",
+      "jee_frequency": 1,
+      "difficulty": "easy",
+      "question_count": 1
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_locus",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_locus.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "locus",
+      "jee_frequency": 12,
+      "difficulty": "medium",
+      "question_count": 15
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_pair-of-straight-lines",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_pair-of-straight-lines.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "pair-of-straight-lines",
+      "jee_frequency": 6,
+      "difficulty": "easy",
+      "question_count": 8
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_position-of-a-point-with-respect-to-a-line",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_position-of-a-point-with-respect-to-a-line.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "position-of-a-point-with-respect-to-a-line",
+      "jee_frequency": 5,
+      "difficulty": "medium",
+      "question_count": 6
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_section-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_section-formula.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "section-formula",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 9
+    },
+    {
+      "doc_id": "straight-lines-and-pair-of-straight-lines_various-forms-of-straight-line",
+      "file_path": "backend\\knowledge\\base\\patterns\\straight-lines-and-pair-of-straight-lines_various-forms-of-straight-line.md",
+      "chapter": "straight-lines-and-pair-of-straight-lines",
+      "topic": "various-forms-of-straight-line",
+      "jee_frequency": 15,
+      "difficulty": "medium",
+      "question_count": 37
+    },
+    {
+      "doc_id": "trigonometric-functions-and-equations_general-solution-and-principal-solution-of-the-equation",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-functions-and-equations_general-solution-and-principal-solution-of-the-equation.md",
+      "chapter": "trigonometric-functions-and-equations",
+      "topic": "general-solution-and-principal-solution-of-the-equation",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "trigonometric-functions-and-equations_solving-trigonometric-equations",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-functions-and-equations_solving-trigonometric-equations.md",
+      "chapter": "trigonometric-functions-and-equations",
+      "topic": "solving-trigonometric-equations",
+      "jee_frequency": 10,
+      "difficulty": "medium",
+      "question_count": 54
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_addition-and-subtraction-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_addition-and-subtraction-formula.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "addition-and-subtraction-formula",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_basic-definition-of-trigonometric-function",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_basic-definition-of-trigonometric-function.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "basic-definition-of-trigonometric-function",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_fundamental-identities",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_fundamental-identities.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "fundamental-identities",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_multiple-and-sub-multiple-angle-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_multiple-and-sub-multiple-angle-formula.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "multiple-and-sub-multiple-angle-formula",
+      "jee_frequency": 6,
+      "difficulty": "medium",
+      "question_count": 10
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_range-of-trigonometric-functions",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_range-of-trigonometric-functions.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "range-of-trigonometric-functions",
+      "jee_frequency": 7,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_reduction-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_reduction-formula.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "reduction-formula",
+      "jee_frequency": 1,
+      "difficulty": "medium",
+      "question_count": 1
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_summation-series-problems",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_summation-series-problems.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "summation-series-problems",
+      "jee_frequency": 2,
+      "difficulty": "medium",
+      "question_count": 2
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_transformation-formula",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_transformation-formula.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "transformation-formula",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 6
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_trigonometric-ratio-of-standard-angles",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_trigonometric-ratio-of-standard-angles.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "trigonometric-ratio-of-standard-angles",
+      "jee_frequency": 4,
+      "difficulty": "medium",
+      "question_count": 7
+    },
+    {
+      "doc_id": "trigonometric-ratio-and-identites_trigonometric-series",
+      "file_path": "backend\\knowledge\\base\\patterns\\trigonometric-ratio-and-identites_trigonometric-series.md",
+      "chapter": "trigonometric-ratio-and-identites",
+      "topic": "trigonometric-series",
+      "jee_frequency": 3,
+      "difficulty": "medium",
+      "question_count": 3
+    },
+    {
+      "doc_id": "unknown_general",
+      "file_path": "backend\\knowledge\\base\\patterns\\unknown_general.md",
+      "chapter": "unknown",
+      "topic": "general",
+      "jee_frequency": 8,
+      "difficulty": "medium",
+      "question_count": 236
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "2023_M_S1_Q1",
+    "year": 2023,
+    "exam": "mains",
+    "shift": "shift1",
+    "question": "If α, β are roots of x² - 5x + 6 = 0, then α² + β² equals",
+    "options": ["A) 13", "B) 11", "C) 25", "D) 12"],
+    "answer": "A",
+    "solution": "Using Vieta's formulas: α + β = 5, αβ = 6. We have α² + β² = (α + β)² - 2αβ = 25 - 12 = 13",
+    "topic": "quadratic_equations"
+  },
+  {
+    "id": "2023_M_S1_Q2",
+    "year": 2023,
+    "exam": "mains",
+    "shift": "shift1",
+    "question": "Evaluate ∫₀^π sin²x dx",
+    "options": ["A) π/2", "B) π", "C) π/4", "D) 2π"],
+    "answer": "A",
+    "solution": "Using sin²x = (1 - cos2x)/2, ∫₀^π sin²x dx = ∫₀^π (1-cos2x)/2 dx = [x/2 - sin2x/4]₀^π = π/2",
+    "topic": "definite_integration"
+  },
+  {
+    "id": "2023_M_S1_Q3",
+    "year": 2023,
+    "exam": "mains",
+    "shift": "shift1",
+    "question": "If three students attempt an exam with success probabilities 1/3, 1/4, and 1/5, find P(at least one succeeds)",
+    "options": ["A) 2/5", "B) 3/5", "C) 1/2", "D) 7/12"],
+    "answer": "B",
+    "solution": "P(none succeeds) = (2/3)(3/4)(4/5) = 24/60 = 2/5. P(at least one) = 1 - 2/5 = 3/5",
+    "topic": "probability"
+  },
+  {
+    "id": "2022_A_P1_Q5",
+    "year": 2022,
+    "exam": "advanced",
+    "shift": "paper1",
+    "question": "Find the area bounded by the parabola y² = 4x and the line y = x",
+    "options": [],
+    "answer": "8/3",
+    "solution": "Intersection points: at x=0 (origin) and x=4. Area = ∫₀⁴ (2√x - x) dx = [4x^(3/2)/3 - x²/2]₀⁴ = 32/3 - 8 = 8/3",
+    "topic": "area_under_curves"
+  },
+  {
+    "id": "2022_A_P1_Q6",
+    "year": 2022,
+    "exam": "advanced",
+    "shift": "paper1",
+    "question": "If z = 1 + i√3, find |z³|",
+    "options": [],
+    "answer": "8",
+    "solution": "|z| = √(1+3) = 2. |z³| = |z|³ = 2³ = 8",
+    "topic": "complex_numbers"
+  }
+]

@@ -4,11 +4,12 @@ Bridges the gap between OCR (raw text) and Solver (code generation).
 """
 
 from google import genai
-import os
 from typing import Dict
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from .config import config
+except ImportError:
+    from config import config
 
 
 class ParserAgent:
@@ -21,14 +22,13 @@ class ParserAgent:
     This solves the "context gap" - OCR extracts symbols, Parser understands intent.
     """
     
-    def __init__(self, model_name: str = "gemini-2.0-flash-exp"):
+    def __init__(self, model_name: str = None):
         """Initialize Parser Agent."""
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
+        if not config.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment")
         
-        self.client = genai.Client(api_key=self.api_key)
-        self.model_name = model_name
+        self.client = genai.Client(api_key=config.GEMINI_API_KEY)
+        self.model_name = model_name or config.GEMINI_MODEL
     
     def parse(self, ocr_output: Dict) -> Dict:
         """

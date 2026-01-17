@@ -1,163 +1,108 @@
-# Math Mentor - Vertical Slice MVP
+# 🧮 Math Mentor AI
 
-An AI-powered math problem solver that uses **Program-of-Thoughts (PoT)** pattern to generate and execute SymPy code for reliable mathematical solutions.
+Math Mentor is an advanced, Study-Buddy AI that uses a **Multi-Agent Reflexion Architecture** to solve math problems, verify solutions, and generate interactive visual explanations.
 
-## 🚀 Quick Start
+It goes beyond simple LLM generation by implementing a rigorous pipeline:
+**Parse** → **Route** → **Solve (Program-of-Thoughts)** → **Verify (SymPy)** → **Reflect (Self-Correction)**.
 
-### 1. Setup
-
-```bash
-# Clone/navigate to project
-cd math-mentor
-
-# Install dependencies (using uv)
-uv sync
-
-# Configure API key
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-```
-
-### 2. Run
-
-```bash
-# Start Streamlit app
-uv run streamlit run frontend/app.py
-```
-
-### 3. Use
-
-1. Enter a math problem (algebra, calculus, probability)
-2. Click "Solve"
-3. See generated SymPy code + answer
+---
 
 ## 🏗️ Architecture
 
-### Complete Flow: Image/Text → Answer
+The system is orchestrated by a central generic agent that coordinates specialized sub-agents.
 
+```mermaid
+graph TD
+    User([User]) <-->|Chat/Image/Audio| Frontend[Streamlit App]
+    
+    subgraph "Backend System"
+        Frontend <--> Orchestrator
+        
+        Orchestrator --> Parser[Parser Agent]
+        Orchestrator --> Router[Router Agent]
+        
+        subgraph "Reflexion Loop"
+            Orchestrator <--> Solver[Solver Agent]
+            Solver <--> Verifier[Verifier Agent]
+        end
+        
+        Solver <-->|Retrieval| RAG[MathRAG (Knowledge Base)]
+        Solver <-->|History| Memory[SQLite + FAISS Memory]
+        
+        Solver -->|Code| Python[Python Sandbox (SymPy)]
+        Verifier -->|Code| Python
+    end
 ```
-Input (Text OR Image)
-    ↓
-[If Image] OCR (Cloud Vision + Gemini Vision)
-    ↓
-Bidirectional Verification (Side-by-side LaTeX render)
-    ↓
-HITL (Edit if confidence < 70% OR user wants to correct)
-    ↓
-Solver Agent (Gemini → SymPy Code)
-    ↓
-Executor (Sandboxed Python)
-    ↓
-Answer Display
-```
 
-**Key Components:**
-- `backend/solver.py`: Generates SymPy code using Gemini API
-- `backend/executor.py`: Executes code safely with timeout
-- `backend/ocr.py`: Dual-model OCR (Cloud Vision + Gemini Vision)
-- `frontend/app.py`: Streamlit UI with image upload + text input
+## ✨ Key Features
 
-### Day 1 (Complete): Text → Answer ✅
+- **🧠 Multi-Agent Orchestrator**: Uses a `Reflexion` workflow (Solve -> Verify -> Reflect) to self-correct errors before showing the answer.
+- **📚 RAG Knowledge Base**: Retrieves verified math concepts from a curated textbook library (`backend/knowledge`) to ground the solution.
+- **🛡️ Verifier Agent**: Executes generated SymPy code in a sandbox to mathematically guarantee correctness.
+- **📊 Interactive Visuals**: Generates `MathDeck` visualizations (graphs, diagrams) for geometric and algebraic concepts.
+- **💾 Long-Term Memory**:
+  - **Episodic**: Remembers past conversations using semantic search (FAISS).
+  - **Persistent**: Stores chat history in SQLite (`math_mentor.db`).
+- **👁️ Multimodal Input**: Supports text, handwriting (OCR), and voice (Google Chirp).
 
-- Text input for math problems
-- SymPy code generation via Gemini
-- Sandboxed code execution
-- Answer display with code trace
+## 🚀 Getting Started
 
-### Day 2 (Complete): Image OCR + HITL ✅
+### Prerequisites
 
-- Image upload with Google Cloud Vision API
-- Gemini Vision fallback for semantic extraction
-- **Bidirectional verification** (side-by-side LaTeX render)
-- **Confidence-based HITL** (< 70% triggers manual review)
-- Editable LaTeX before solving
+- Python 3.10+
+- `uv` package manager (recommended)
+- Google Gemini API Key
+- Google Cloud Project (for Speech-to-Text)
 
-## 🧪 Testing
+### Installation
 
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/math-mentor.git
+   cd math-mentor
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   uv sync
+   ```
+
+3. **Configure Environment**:
+   Create a `.env` file based on `.env.example`:
+   ```bash
+   GEMINI_API_KEY=your_api_key
+   GCP_PROJECT_ID=your_project_id
+   ```
+
+### Running the App
+
+Start the Streamlit interface:
 ```bash
-# Test solver and executor
-uv run python tests/test_solver.py
-
-# Run app locally
 uv run streamlit run frontend/app.py
 ```
 
-## 📝 Example Problems
+Open [http://localhost:8501](http://localhost:8501) in your browser.
 
-**Algebra:**
-- Solve x² + 3x - 4 = 0 for x
-- Factor x² - 9
+## 🧪 Testing
 
-**Calculus:**
-- Integrate x² from 0 to 10
-- Find derivative of sin(x) * cos(x)
+Run the comprehensive test suite:
+```bash
+uv run pytest tests/
+```
 
-**Probability:**
-- P(X < 2) where X ~ Normal(0, 1)
-
-## 🚀 Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for full guide.
-
-**Quick Deploy to Streamlit Cloud:**
-1. Push to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repo
-4. Add `GEMINI_API_KEY` to secrets
-5. Deploy!
-
-## 🛠️ Tech Stack
-
-- **LLM**: Google Gemini 2.0 Flash (Exp)
-- **OCR**: Google Cloud Vision + Gemini Vision
-- **Math Engine**: SymPy
-- **Frontend**: Streamlit
-- **Package Manager**: uv
+Or run specific agent tests:
+```bash
+uv run python tests/test_orchestrator.py
+uv run python tests/test_verifier.py
+```
 
 ## 📂 Project Structure
 
-```
-math-mentor/
-├── backend/
-│   ├── solver.py       # Code generation agent
-│   ├── executor.py     # Safe code execution
-│   └── ocr.py          # Image → LaTeX extraction
-├── frontend/
-│   └── app.py          # Streamlit UI (text + image)
-├── tests/
-│   └── test_solver.py  # Test suite
-├── .env.example
-├── requirements.txt
-├── DEPLOYMENT.md
-└── README.md
-```
+- `backend/agents/`: specialized agents (Solver, Verifier, Router, Parser).
+- `backend/knowledge/`: RAG system and textbook markdown files.
+- `backend/orchestrator.py`: Main state machine logic.
+- `frontend/`: Streamlit UI components.
+- `tests/`: Unit and end-to-end tests.
 
-## 🎯 MVP Scope (2 Days - Complete!)
-
-**Day 1 (Complete) ✅:**
-- ✅ Text input
-- ✅ SymPy code generation
-- ✅ Sandboxed execution
-- ✅ Basic Streamlit UI
-
-**Day 2 (Complete) ✅:**
-- ✅ Image OCR (dual-model)
-- ✅ Bidirectional LaTeX verification
-- ✅ HITL (confidence-based)
-- ✅ Deployment-ready
-
-**Deferred to Post-MVP:**
-- ⏳ RAG pipeline (knowledge base)
-- ⏳ Memory/caching (template reuse)
-- ⏳ Multi-agent orchestration (LangGraph)
-- ⏳ Audio input (Whisper)
-- ⏳ Advanced verifier (symbolic cross-check)
-
-## 🎬 Demo
-
-1. **Text Mode**: Enter "Solve x² + 3x - 4 = 0" → See code + answer
-2. **Image Mode**: Upload photo → Verify LaTeX → Solve
-
-## 📄 License
-
-MIT
+---
+*Built with ❤️ by Antigravity*

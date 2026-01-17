@@ -4,12 +4,13 @@ Uses Gemini 2.0 Flash API with Program-of-Thoughts (PoT) pattern.
 """
 
 from google import genai
-import os
 import re
 from typing import Dict, Optional
-from dotenv import load_dotenv
+try:
+    from .config import config
+except ImportError:
+    from config import config
 
-load_dotenv()
 
 class SolverAgent:
     """
@@ -21,19 +22,18 @@ class SolverAgent:
     - SymPy = "executor" (performs deterministic computation)
     """
     
-    def __init__(self, model_name: str = "gemini-2.0-flash-exp"):
+    def __init__(self, model_name: str = None):
         """
         Initialize the Solver Agent with BEST reasoning model.
         
         Args:
-            model_name: Gemini model (default: gemini-2.0-flash-exp)
+            model_name: Gemini model (uses config default if not specified)
         """
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
+        if not config.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         
-        self.client = genai.Client(api_key=self.api_key)
-        self.model_name = model_name
+        self.client = genai.Client(api_key=config.GEMINI_API_KEY)
+        self.model_name = model_name or config.GEMINI_MODEL
         
     def solve(self, problem: str) -> Dict[str, str]:
         """
@@ -114,68 +114,26 @@ class SolverAgent:
         # Format relationships
         rel_str = "\n".join([f"- {r}" for r in relationships])
         
-        return f"""You are a mathematical tutor using Gemini 2.0 Flash Thinking.
+        try:
+            from prompts import get_prompt
+            template = get_prompt("solver_contextual")
+            return template.format(
+                problem_statement=problem_stmt,
+                question=question,
+                given_values=given_str if given_str else "None explicitly given",
+                relationships=rel_str if rel_str else "Derive from problem context",
+                approach=approach if approach else "Determine from problem type"
+            )
+        except Exception:
+            # Fallback to minimal inline prompt
+            return f"""You are a mathematical tutor. Solve this problem step by step.
 
-**YOUR ROLE**: Teach math beautifully! Show mathematical reasoning, NOT programming.
-
-**CRITICAL INSTRUCTIONS**:
-1. Provide INTUITIVE EXPLANATION in simple terms
-2. Show MATHEMATICAL SOLUTION STEPS (use proper math notation)
-3. Generate executable Python code (hidden from user, just for calculation)
-4. Provide clean EXPLANATION with final answer interpretation
-
-**Problem Statement**: {problem_stmt}
-
+**Problem**: {problem_stmt}
 **Question**: {question}
+**Given**: {given_str if given_str else "See problem"}
+**Approach**: {approach if approach else "Determine best method"}
 
-**Given Values**:
-{given_str if given_str else "None explicitly given"}
-
-**Relevant Formulas**:
-{rel_str if rel_str else "Derive from problem context"}
-
-**Suggested Approach**: {approach if approach else "Determine from problem type"}
-
-**CRITICAL OUTPUT FORMATTING RULES**:
-
-1. **NO UNICODE MATH**: Use plain text (x^2 not ², sqrt() not √)
-2. **ONE STEP PER LINE**: Clear breaks between steps
-3. **BOLD KEY VALUES**: Use **bold** for important numbers
-4. **NO IMPORTS**: `sympy`, `numpy` (as `np`), and `matplotlib.pyplot` (as `plt`) are PRE-LOADED. Do not import them.
-
-**OUTPUT FORMAT**:
-
-**INTUITION**:
-[Brief explanation in plain English - why this approach works]
-
-**SOLUTION STEPS**:
-
-**Step 1**: [First action]
-- ...
-
-**VISUALIZATION** (if helpful):
-```python
-# Libraries `plt` and `np` are PRE-LOADED. Do not import.
-# Create explanatory visualization
-fig, ax = plt.subplots(...)
-...
-plt.savefig('explanation_viz.png', dpi=150, bbox_inches='tight')
-plt.close()
-```
-
-**CODE** (calculation):
-```python
-# `sympy` is PRE-LOADED. Do not import.
-# Calculation here
-answer = ...
-```
-
-**EXPLANATION**:
-[Interpretation]
-
----
-
-Now solve with CLEAN, STEP-BY-STEP formatting.
+Provide: INTUITION, SOLUTION STEPS, CODE (with `answer = ...`), EXPLANATION.
 """
     
     def _build_prompt(self, problem: str) -> str:
@@ -187,7 +145,13 @@ Now solve with CLEAN, STEP-BY-STEP formatting.
         2. Require storing final answer in `answer` variable
         3. Provide examples to guide output format
         """
-        return f"""You are a math problem solver that generates ONLY executable Python code using SymPy.
+        try:
+            from prompts import get_prompt
+            template = get_prompt("solver_basic")
+            return template.format(problem=problem)
+        except Exception:
+            # Fallback to inline prompt if file loading fails
+            return f"""You are a math problem solver that generates ONLY executable Python code using SymPy.
 
 **Problem**: {problem}
 
@@ -197,35 +161,6 @@ Now solve with CLEAN, STEP-BY-STEP formatting.
 3. Store the final answer in a variable named `answer`
 4. Do NOT compute manually - let SymPy do all calculations
 5. Output ONLY the code - no explanations before or after
-
-**Example 1**:
-Problem: Solve x**2 - 4 = 0 for x
-Code:
-```python
-from sympy import *
-x = symbols('x')
-equation = Eq(x**2 - 4, 0)
-answer = solve(equation, x)
-```
-
-**Example 2**:
-Problem: Integrate x**2 from 0 to 10
-Code:
-```python
-from sympy import *
-x = symbols('x')
-answer = integrate(x**2, (x, 0, 10))
-```
-
-**Example 3**:
-Problem: Find the derivative of sin(x) * cos(x)
-Code:
-```python
-from sympy import *
-x = symbols('x')
-expr = sin(x) * cos(x)
-answer = diff(expr, x)
-```
 
 Now generate code for the given problem. Output ONLY the Python code inside ```python``` tags.
 """

@@ -9,12 +9,15 @@ import signal
 from contextlib import contextmanager
 from typing import Dict, Any
 import sympy
-import os
-from dotenv import load_dotenv
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
+
+try:
+    from .config import config
+except ImportError:
+    from config import config
 
 
 class TimeoutException(Exception):
@@ -52,18 +55,18 @@ class Executor:
     Design choices:
     1. Allow only SymPy imports (no filesystem access, network, etc.)
     2. Capture stdout/stderr to display intermediate steps
-    3. Timeout protection (5 seconds default)
+    3. Timeout protection (configurable, default from config)
     4. Return structured results (success/failure, output, errors)
     """
     
-    def __init__(self, timeout_seconds: int = 5):
+    def __init__(self, timeout_seconds: int = None):
         """
         Initialize executor.
         
         Args:
-            timeout_seconds: Max execution time (default: 5)
+            timeout_seconds: Max execution time (uses config default if not specified)
         """
-        self.timeout_seconds = timeout_seconds
+        self.timeout_seconds = timeout_seconds or config.EXECUTOR_TIMEOUT_SECONDS
     
     def execute(self, code: str) -> Dict[str, Any]:
         """
@@ -191,7 +194,7 @@ class Executor:
         Allows harmless imports (redundant ones for libraries already loaded).
         Blocks everything else.
         """
-        allowed_modules = {'math', 'sympy', 'numpy', 'matplotlib', 'matplotlib.pyplot'}
+        allowed_modules = set(config.SANDBOX_ALLOWED_MODULES)
         
         # Check if it's a known safe module
         if name in allowed_modules:

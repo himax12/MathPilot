@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solving Quadratic Equations</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        
+        .deck-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .deck-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .deck-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #7f5af0 0%, #2cb67d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .deck-subtitle {
+            color: #718096;
+            font-size: 1rem;
+        }
+        
+        .slide {
+            margin-bottom: 2rem;
+            opacity: 1;
+        }
+        
+        .slide-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 2rem 2.5rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .slide-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .slide-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .slide-icon {
+            font-size: 1.5rem;
+        }
+        
+        .slide-title {
+            color: #7f5af0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .slide-content {
+            color: #a0aec0;
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+        
+        .slide-content p {
+            margin-bottom: 0.75rem;
+        }
+        
+        .slide-content strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        .slide-content ul, .slide-content ol {
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .slide-content li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .slide-diagram {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        
+        /* Slide type variations */
+        .slide-title-slide .slide-card {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .slide-title-slide .slide-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .slide-intuition .slide-card {
+            border-left: 4px solid #7f5af0;
+        }
+        
+        .slide-answer .slide-card {
+            border: 2px solid #2cb67d;
+            box-shadow: 0 0 40px rgba(127, 90, 240, 0.25);
+        }
+        
+        .slide-answer .slide-content {
+            font-size: 1.5rem;
+            color: #2cb67d;
+            text-align: center;
+            font-weight: 600;
+            padding: 1rem 0;
+        }
+        
+        .slide-step .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #7f5af0;
+            color: white;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-right: 0.75rem;
+        }
+        
+        /* Progress indicator */
+        .progress-container {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 3rem;
+            padding-bottom: 2rem;
+        }
+        
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+        
+        .progress-dot.active {
+            background: #7f5af0;
+            transform: scale(1.2);
+        }
+        
+        /* Code blocks */
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        
+        /* KaTeX styling */
+        .katex {
+            font-size: 1.1em;
+        }
+        
+        .katex-display {
+            margin: 1rem 0;
+            text-align: center;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .deck-title { font-size: 1.8rem; }
+            .slide-card { padding: 1.5rem; }
+            .slide-title { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-container">
+        <header class="deck-header">
+            <h1 class="deck-title">Solving Quadratic Equations</h1>
+            <p class="deck-subtitle">Generated by Math Mentor</p>
+        </header>
+        
+        
+        <section class="slide slide-title" data-index="0">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="slide-icon">🧮</span>
+                    
+                    <h2 class="slide-title">Solving Quadratic Equations</h2>
+                </div>
+                <div class="slide-content">
+                    Domain: Algebra
+                </div>
+                
+            </div>
+        </section>
+        
+        <section class="slide slide-intuition" data-index="1">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="slide-icon">💡</span>
+                    
+                    <h2 class="slide-title">💡 Key Insight</h2>
+                </div>
+                <div class="slide-content">
+                    A quadratic equation can be solved using the quadratic formula: $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$
+                </div>
+                
+            </div>
+        </section>
+        
+        <section class="slide slide-step" data-index="2">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="step-number">1</span>
+                    
+                    <h2 class="slide-title">Step 1</h2>
+                </div>
+                <div class="slide-content">
+                    Identify the coefficients:
+- $a = 1$
+- $b = 3$
+- $c = -4$
+                </div>
+                
+            </div>
+        </section>
+        
+        <section class="slide slide-step" data-index="3">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="step-number">2</span>
+                    
+                    <h2 class="slide-title">Step 2</h2>
+                </div>
+                <div class="slide-content">
+                    Calculate the discriminant:
+- $\Delta = b^2 - 4ac = 9 + 16 = 25$
+                </div>
+                
+            </div>
+        </section>
+        
+        <section class="slide slide-step" data-index="4">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="step-number">3</span>
+                    
+                    <h2 class="slide-title">Step 3</h2>
+                </div>
+                <div class="slide-content">
+                    Apply the formula:
+- $x = \frac{-3 \pm 5}{2}$
+- $x_1 = 1$, $x_2 = -4$
+                </div>
+                
+            </div>
+        </section>
+        
+        <section class="slide slide-answer" data-index="5">
+            <div class="slide-card">
+                <div class="slide-header">
+                    
+                    <span class="slide-icon">🎯</span>
+                    
+                    <h2 class="slide-title">🎯 Final Answer</h2>
+                </div>
+                <div class="slide-content">
+                    x = 1 or x = -4
+                </div>
+                
+            </div>
+        </section>
+        
+        
+        <div class="progress-container">
+            
+            <span class="progress-dot active"></span>
+            
+            <span class="progress-dot "></span>
+            
+            <span class="progress-dot "></span>
+            
+            <span class="progress-dot "></span>
+            
+            <span class="progress-dot "></span>
+            
+            <span class="progress-dot "></span>
+            
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script>
+        // Render LaTeX in all slide content
+        document.querySelectorAll('.slide-content').forEach(el => {
+            let html = el.innerHTML;
+            
+            // Inline LaTeX: $...$
+            html = html.replace(/\$([^$]+)\$/g, (match, latex) => {
+                try {
+                    return katex.renderToString(latex, { throwOnError: false });
+                } catch (e) {
+                    return match;
+                }
+            });
+            
+            el.innerHTML = html;
+        });
+        
+        // Simple scroll-based progress indicator
+        const dots = document.querySelectorAll('.progress-dot');
+        const slides = document.querySelectorAll('.slide');
+        
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY + window.innerHeight / 2;
+            
+            slides.forEach((slide, i) => {
+                const rect = slide.getBoundingClientRect();
+                const slideTop = rect.top + window.scrollY;
+                const slideBottom = slideTop + rect.height;
+                
+                if (scrollPos >= slideTop && scrollPos < slideBottom) {
+                    dots.forEach((dot, j) => {
+                        dot.classList.toggle('active', j === i);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

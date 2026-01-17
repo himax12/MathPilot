@@ -19,27 +19,45 @@ except ImportError as e:
     st.stop()
 
 
+
+
 def init_session_state():
     """Initialize session state for chat mode."""
-    if 'orchestrator' not in st.session_state:
-        try:
-            with st.spinner("🤖 Waking up agents... (Parser, Router, Solver, Verifier)"):
-                st.session_state.orchestrator = Orchestrator()
-        except ValueError as e:
-            st.error(f"❌ {e}")
-            st.stop()
+    # Initialize Orchestrator
+    if "orchestrator" not in st.session_state:
+        st.session_state.orchestrator = Orchestrator()
     
+    # Initialize deck generator
     if 'deck_generator' not in st.session_state:
         st.session_state.deck_generator = DeckGenerator(theme="dark")
     
+    # Attempt to restore previous conversation
+    if st.session_state.orchestrator.restore_session():
+        st.success("✅ Restored previous conversation!")
+    
+    # Initialize messages list for frontend display
     if 'messages' not in st.session_state:
         st.session_state.messages = []
+    
+    # Display chat history from memory
+    messages = st.session_state.orchestrator.solver.memory.messages
+    for msg in messages:
+        with st.chat_message(msg.role):
+            st.markdown(msg.content)
+            if msg.deck:
+                try:
+                    deck_html = st.session_state.deck_generator.from_structured(msg.deck)
+                    with st.expander("📊 Visual Explanation"):
+                        st.components.v1.html(deck_html, height=600, scrolling=True)
+                except Exception as e:
+                    st.warning(f"Could not render deck: {e}")
     
     if 'ocr' not in st.session_state:
         st.session_state.ocr = None
     
     if 'pending_input' not in st.session_state:
         st.session_state.pending_input = None
+
 
 
 def render_message(msg: dict):

@@ -21,25 +21,16 @@ class ParsedProblem:
     """Output from Parser Agent."""
     problem_text: str
     topic: str  # algebra, calculus, probability, linear_algebra
-    variables: List[str] = field(default_factory=list)
-    constraints: List[str] = field(default_factory=list)
-    given: Dict[str, Any] = field(default_factory=dict)
     question: str = ""
     approach: str = ""
-    relationships: List[str] = field(default_factory=list)
     needs_clarification: bool = False
-    confidence: float = 0.0
-    error: Optional[str] = None
 
 
 @dataclass
 class RouteDecision:
     """Output from Router Agent."""
     domain: str  # algebra, calculus, probability, etc.
-    subtopic: str  # e.g., quadratic, conditional_probability
     strategy: str  # e.g., quadratic_formula, bayes_theorem
-    rag_filters: List[str] = field(default_factory=list)
-    confidence: float = 0.0
 
 
 @dataclass

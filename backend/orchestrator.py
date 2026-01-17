@@ -10,6 +10,19 @@ from dataclasses import dataclass, field
 import json
 import re
 
+# Import text processing utilities
+try:
+    from utils.text_utils import strip_code_from_reasoning
+except ImportError:
+    # Fallback for standalone execution
+    import re
+    def strip_code_from_reasoning(reasoning):
+        if not isinstance(reasoning, str) or reasoning is None:
+            return ''
+        reasoning = re.sub(r'\*\*Internal Code\*\*.*', '', reasoning, flags=re.DOTALL | re.IGNORECASE)
+        reasoning = re.sub(r'```[^`]*```', '', reasoning, flags=re.DOTALL)
+        return reasoning.strip()
+
 # Ensure backend definitions are accessible
 current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(current_dir)
@@ -47,12 +60,23 @@ class Orchestrator:
     Flow: Parser -> Router -> RAG -> Solver -> Verifier -> (Reflector Loop).
     """
     
-    def __init__(self):
-        self.parser = ParserAgent()
-        self.router = RouterAgent()
-        self.solver = SolverAgent()
-        self.verifier = VerifierAgent()
-        self.max_retries = 3
+    def __init__(self, parser=None, router=None, solver=None, verifier=None, max_retries=3):
+        """
+        Initialize Orchestrator with dependency injection support.
+        
+        Args:
+            parser: ParserAgent instance (or None to use default)
+            router: RouterAgent instance (or None to use default)
+            solver: SolverAgent instance (or None to use default)
+            verifier: VerifierAgent instance (or None to use default)
+            max_retries: Maximum reflexion attempts (default: 3)
+        """
+        # Dependency Injection with sensible defaults
+        self.parser = parser or ParserAgent()
+        self.router = router or RouterAgent()
+        self.solver = solver or SolverAgent()
+        self.verifier = verifier or VerifierAgent()
+        self.max_retries = max_retries
         
     def run(self, user_input: str) -> Dict[str, Any]:
         """
@@ -92,10 +116,8 @@ class Orchestrator:
         ctx.parsed = ParsedProblem(
             problem_text=parsed_dict.get("problem_statement", ""),
             topic=parsed_dict.get("domain", "unknown"),
-            given=parsed_dict.get("given", {}),
             question=parsed_dict.get("question", ""),
             approach=parsed_dict.get("approach", ""),
-            relationships=parsed_dict.get("relationships", []),
             needs_clarification=parsed_dict.get("needs_clarification", False)
         )
         
@@ -104,16 +126,8 @@ class Orchestrator:
                 "response": f"I need clarification: {ctx.parsed.problem_text}",
                 "status": "clarification_needed"
             }
-
         # 2. Route
         events.append("Routing to domain specialist...")
-        ctx.route = self.router.route(ctx.parsed.problem_text)
-        events.append(f"Routed to: {ctx.route.domain} ({ctx.route.strategy})")
-        
-        # 3. RAG (Implicit in Solver, but we could make it explicit here)
-        # For now, Solver handles RAG internally using its own self.rag
-        
-        # 4. Reflexion Loop (Solve -> Verify -> Reflect)
         for i in range(self.max_retries):
             events.append(f"Attempt {i+1}/{self.max_retries}...")
             
@@ -213,18 +227,7 @@ class Orchestrator:
         msg = ""
         if ctx.status == "verified":
             # Strip the entire "Internal Code" section from reasoning
-            reasoning = ctx.final_solution.get('reasoning') or ''
-            
-            # Safety check: ensure reasoning is a string
-            if not isinstance(reasoning, str):
-                reasoning = ''
-            
-            # Remove everything from "**Internal Code**" onwards (case insensitive)
-            reasoning = re.sub(r'\*\*Internal Code\*\*.*', '', reasoning, flags=re.DOTALL | re.IGNORECASE)
-            # Also remove any stray code blocks
-            reasoning = re.sub(r'```[^`]*```', '', reasoning, flags=re.DOTALL)
-            # Clean up extra whitespace
-            reasoning = reasoning.strip()
+            reasoning = strip_code_from_reasoning(ctx.final_solution.get('reasoning'))
             
             msg = f"### Solution\n\n{reasoning}\n\n**Answer:** {ctx.final_solution['answer']}\n\n"
             if len(ctx.attempts) > 1:
@@ -236,9 +239,9 @@ class Orchestrator:
                 
                 # Strip code section from reasoning
                 reasoning = last.solution.get('reasoning', 'No reasoning available')
-                reasoning = re.sub(r'\*\*Internal Code\*\*.*', '', reasoning, flags=re.DOTALL | re.IGNORECASE)
-                reasoning = re.sub(r'```[^`]*```', '', reasoning, flags=re.DOTALL)
-                reasoning = reasoning.strip()
+                reasoning = strip_code_from_reasoning(reasoning)
+                if not reasoning:
+                    reasoning = 'No reasoning available'
                 
                 msg += f"{reasoning}\n\n**Possible Answer:** {last.solution.get('answer', 'Unknown')}\n"
                 msg += f"\n*Issues found:* {last.verification.issues}"
@@ -266,7 +269,28 @@ class Orchestrator:
         }
 
     def _format_history(self, attempts: List[Attempt]) -> str:
-        out = ""
-        for a in attempts:
-            out += f"Attempt {a.round + 1}:\nCode:\n{a.solution.get('code','No Code')}\nIssues: {a.verification.issues}\nReflection: {a.reflection}\n---\n"
-        return out
+        """Format reflexion history for display."""
+        if len(attempts) <= 1:
+            return ""
+        return f"\n\n---\n**Reflexion History:**\n- {len(attempts)} attempts\n- Final solution verified ✓"
+    
+    # Facade methods for cleaner frontend access
+    def add_user_message(self, content: str):
+        """Facade: Add user message to conversation memory."""
+        self.solver.memory.add_user_message(content)
+    
+    def add_assistant_message(self, content: str, deck=None):
+        """Facade: Add assistant message to conversation memory."""
+        self.solver.memory.add_assistant_message(content, deck)
+    
+    def restore_session(self) -> bool:
+        """Facade: Restore last conversation session."""
+        return self.solver.memory.restore_last_session()
+    
+    def clear_conversation(self):
+        """Facade: Clear conversation history."""
+        self.solver.memory.clear()
+    
+    def get_conversation_context(self, limit: int = 5) -> str:
+        """Facade: Get recent conversation context."""
+        return self.solver.memory.get_context_window(limit)

@@ -19,7 +19,6 @@ def handle_image_input():
         # Display image
         image = Image.open(uploaded_file)
         st.image(image, caption="Uploaded Image", use_column_width=True)
-        st.session_state.current_image = image
         
         # Initialize OCR if needed
         if st.session_state.ocr is None:
@@ -34,8 +33,26 @@ def handle_image_input():
         
         # Extract LaTeX
         with st.spinner("🔍 Extracting math expression..."):
+            # Resize and compress image to stay under API payload limits (20 MB)
             image_bytes = io.BytesIO()
-            image.save(image_bytes, format='PNG')
+            
+            # Resize if image is too large (max dimension 2048px)
+            max_dimension = 2048
+            if max(image.size) > max_dimension:
+                ratio = max_dimension / max(image.size)
+                new_size = tuple(int(dim * ratio) for dim in image.size)
+                image = image.resize(new_size, Image.Resampling.LANCZOS)
+                st.info(f"📏 Image resized to {new_size[0]}x{new_size[1]} for optimal processing")
+            
+            # Convert to RGB if needed (for JPEG compatibility)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[-1] if 'A' in image.mode else None)
+                image = rgb_image
+            
+            # Save as JPEG with quality optimization
+            image.save(image_bytes, format='JPEG', quality=85, optimize=True)
+            
             ocr_result = st.session_state.ocr.extract_from_image(image_bytes.getvalue())
         
         if ocr_result["error"]:

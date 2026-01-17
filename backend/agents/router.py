@@ -60,10 +60,7 @@ class RouterAgent(BaseAgent):
             
             return RouteDecision(
                 domain=data.get("domain", "general"),
-                subtopic=data.get("subtopic", "general_math"),
-                strategy=data.get("strategy", "direct_computation"),
-                rag_filters=data.get("rag_filters", []),
-                confidence=data.get("confidence", 0.5)
+                strategy=data.get("strategy", "direct_computation")
             )
             
         except Exception as e:
@@ -71,9 +68,7 @@ class RouterAgent(BaseAgent):
             # Fallback
             return RouteDecision(
                 domain="general", 
-                subtopic="unknown", 
-                strategy="direct_computation", 
-                confidence=0.0
+                strategy="direct_computation"
             )
             
     def _build_prompt(self, problem: str) -> str:
@@ -84,25 +79,12 @@ PROBLEM: "{problem}"
 
 Your goal is to output a JSON object with:
 1. "domain": High-level subject (Algebra, Calculus, Probability, Geometry, Statistics, Linear Algebra)
-2. "subtopic": Specific topic (e.g., "quadratic_equations", "bayes_theorem", "optimization")
-3. "strategy": The best algorithmic approach (e.g., "quadratic_formula", "substitution_method", "integration_by_parts")
-4. "rag_filters": List of knowledge base keys to search (e.g., ["algebra/quadratics", "calculus/derivatives"])
-5. "confidence": Float 0.0-1.0 representing your certainty.
-
-Valid Knowledge Base Keys:
-- algebra/basics, algebra/quadratics, algebra/logarithms
-- calculus/derivatives, calculus/integration, calculus/limits
-- probability/basics, probability/distributions, probability/bayes
-- geometry/triangles, geometry/circles
-- statistics/descriptive, statistics/inference
+2. "strategy": The best algorithmic approach (e.g., "quadratic_formula", "substitution_method", "integration_by_parts")
 
 OUTPUT format must be PURE JSON (no markdown fences):
 {{
     "domain": "...",
-    "subtopic": "...",
-    "strategy": "...",
-    "rag_filters": ["..."],
-    "confidence": 0.95
+    "strategy": "..."
 }}
 """
 

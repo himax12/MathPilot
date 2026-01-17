@@ -118,18 +118,12 @@ class Executor:
                     "error_type": "MissingAnswerError"
                 }
             
-            # Extract answer dynamically
-            answer = self._extract_answer_dynamic(namespace, stdout_capture.getvalue())
-            
-            # Convert SymPy objects to readable strings
-            if hasattr(answer, '__iter__') and not isinstance(answer, str):
-                answer = [str(item) for item in answer]
-            else:
-                answer = str(answer)
+            # Format answer properly - use LaTeX for SymPy objects
+            formatted_answer = self._format_answer(answer)
             
             return {
                 "success": True,
-                "answer": answer,
+                "answer": formatted_answer,
                 "stdout": stdout_capture.getvalue(),
                 "stderr": stderr_capture.getvalue(),
                 "error": None,
@@ -186,7 +180,49 @@ class Executor:
             return list(user_vars.values())[-1]
         return None
     
-        return None
+    def _format_answer(self, answer):
+        """
+        Format answer for display - use LaTeX for math, simplify if possible.
+        
+        Args:
+            answer: Raw answer from namespace (could be SymPy object, list, etc.)
+            
+        Returns:
+            Formatted string (LaTeX if SymPy, otherwise string representation)
+        """
+        if answer is None:
+            return "None"
+        
+        # Handle lists (e.g., multiple solutions)
+        if hasattr(answer, '__iter__') and not isinstance(answer, str):
+            try:
+                # Try to format each item
+                items = []
+                for item in answer:
+                    if hasattr(item, 'simplify'):
+                        # SymPy object - simplify first
+                        simplified = item.simplify()
+                        # Convert to LaTeX
+                        items.append(f"${sympy.latex(simplified)}$")
+                    else:
+                        items.append(str(item))
+                return ", ".join(items)
+            except:
+                # Fallback to string
+                return str(answer)
+        
+        # Single value
+        try:
+            # Check if it's a SymPy object
+            if hasattr(answer, 'simplify'):
+                # Simplify the expression first
+                simplified = answer.simplify()
+                # Convert to LaTeX
+                return f"${sympy.latex(simplified)}$"
+            else:
+                return str(answer)
+        except:
+            return str(answer)
     
     def _safe_import(self, name, globals=None, locals=None, fromlist=(), level=0):
         """

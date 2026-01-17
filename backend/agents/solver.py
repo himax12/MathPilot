@@ -19,9 +19,26 @@ from config import config
 from deck_generator.models import MathDeck, MathSlide, VisualRequest
 from memory import ConversationMemory
 from knowledge import MathRAG
+from agents.base import BaseAgent
+
+# Import utilities
+try:
+    from utils.text_utils import extract_code_from_response
+except ImportError:
+    import re
+    def extract_code_from_response(response_text):
+        pattern = r"```python\s*(.*?)\s*```"
+        match = re.search(pattern, response_text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        pattern = r"```\s*(.*?)\s*```"
+        match = re.search(pattern, response_text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        return response_text.strip()
 
 
-class SolverAgent:
+class SolverAgent(BaseAgent):
     """
     Generates executable Python code using SymPy to solve math problems.
     
@@ -38,78 +55,16 @@ class SolverAgent:
         Args:
             model_name: Gemini model (uses config default if not specified)
         """
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
-        
-        # Store API key and cache client instance
-        self._api_key = config.GEMINI_API_KEY
-        self._client_instance = None
-        self.model_name = model_name or config.GEMINI_MODEL
+        super().__init__(model_name)
         self.memory = ConversationMemory()  # Multi-turn conversation state
-        self.rag = MathRAG()  # Initialize RAG engine
+        self._rag_instance = None  # Lazy-load RAG
     
     @property
-    def client(self):
-        """Lazy-init and cache client to avoid both event loop AND garbage collection issues."""
-        if self._client_instance is None:
-            self._client_instance = genai.Client(api_key=self._api_key)
-        return self._client_instance
-    
-    def chat(self, user_input: str) -> Dict[str, any]:
-        """
-        Multi-turn chat interface. Handles both new problems and follow-ups.
-        
-        Args:
-            user_input: User's message (could be a problem or a follow-up)
-            
-        Returns:
-            Dict with: 'response' (text), 'deck' (optional MathDeck), 'is_new_problem' (bool)
-        """
-        # Add user message to memory
-        self.memory.add_user_message(user_input)
-        
-        # Determine if this is a follow-up or a new problem
-        is_follow_up = self.memory.is_follow_up(user_input)
-        
-        if is_follow_up:
-            # Generate a contextual response using conversation history
-            response = self._generate_follow_up_response(user_input)
-            self.memory.add_assistant_message(response)
-            return {
-                "response": response,
-                "deck": None,
-                "is_new_problem": False
-            }
-        else:
-            # Treat as a new problem - use text-based solve for reliability
-            self.memory.set_active_problem(user_input)
-            
-            result = self.solve(user_input)
-            
-            if result.get("error"):
-                error_msg = f"I encountered an issue: {result['error']}"
-                self.memory.add_assistant_message(error_msg)
-                return {"response": error_msg, "deck": None, "is_new_problem": True}
-            
-            reasoning = result.get("reasoning", "")
-            code = result.get("code", "")
-            
-            # Build a comprehensive response
-            response_parts = []
-            if reasoning:
-                response_parts.append(reasoning)
-            if code:
-                response_parts.append(f"\n**Generated Code:**\n```python\n{code}\n```")
-            
-            response = "\n".join(response_parts) if response_parts else "I processed your request."
-            
-            self.memory.add_assistant_message(response)
-            return {
-                "response": response,
-                "deck": None,  # Skip deck for now until schema issues resolved
-                "is_new_problem": True,
-                "code": code
-            }
+    def rag(self):
+        """Lazy-load RAG only when needed (saves 200-500ms on startup)."""
+        if self._rag_instance is None:
+            self._rag_instance = MathRAG()
+        return self._rag_instance
     
     def _generate_follow_up_response(self, user_input: str) -> str:
         """Generate a response to a follow-up question using context."""
@@ -187,63 +142,6 @@ You are a friendly Math Mentor continuing a conversation.
                 "error": str(e)
             }
     
-    def solve_from_parsed(self, parsed_problem: Dict) -> Dict[str, str]:
-        """
-        Generate SymPy code from PARSED problem (with context).
-        
-        Args:
-            parsed_problem: Dict from ParserAgent with structured information
-            
-        Returns:
-            Same as solve() but with better context-aware code generation
-        """
-        prompt = self._build_contextual_prompt(parsed_problem)
-        
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt
-            )
-            code = self._extract_code(response.text)
-            
-            return {
-                "code": code,
-                "reasoning": response.text.split("```python")[0].strip() if "```python" in response.text else "",
-                "error": None
-            }
-        except Exception as e:
-            return {
-                "code": None,
-                "reasoning": None,
-                "error": str(e)
-            }
-    
-    def _build_contextual_prompt(self, parsed_problem: Dict) -> str:
-        """Build enhanced prompt from parsed problem structure."""
-        problem_stmt = parsed_problem.get("problem_statement", "")
-        question = parsed_problem.get("question", "")
-        given = parsed_problem.get("given", {})
-        relationships = parsed_problem.get("relationships", [])
-        approach = parsed_problem.get("approach", "")
-        
-        # Format given values
-        given_str = "\n".join([f"- {k} = {v}" for k, v in given.items()])
-        
-        # Format relationships
-        rel_str = "\n".join([f"- {r}" for r in relationships])
-        
-        try:
-            from prompts import get_prompt
-            template = get_prompt("solver_contextual")
-            return template.format(
-                problem_statement=problem_stmt,
-                question=question,
-                given_values=given_str if given_str else "None explicitly given",
-                relationships=rel_str if rel_str else "Derive from problem context",
-                approach=approach if approach else "Determine from problem type"
-            )
-        except Exception:
-            # Fallback to minimal inline prompt
             return f"""You are a mathematical tutor. Solve this problem step by step.
 
 **Problem**: {problem_stmt}
@@ -349,48 +247,6 @@ Now generate code for the given problem. Output ONLY the Python code inside ```p
     def _extract_code(self, response_text: str) -> Optional[str]:
         """
         Extract Python code from the LLM response.
-        
-        Handles formats:
-        - ```python ... ```
-        - ```\n ... \n```
-        - Plain code (no markers)
+        Uses centralized utility function.
         """
-        # Try to find code block with python marker
-        pattern = r"```python\s*(.*?)\s*```"
-        match = re.search(pattern, response_text, re.DOTALL)
-        
-        if match:
-            return match.group(1).strip()
-        
-        # Try generic code block
-        pattern = r"```\s*(.*?)\s*```"
-        match = re.search(pattern, response_text, re.DOTALL)
-        
-        if match:
-            return match.group(1).strip()
-        
-        # Assume entire response is code (fallback)
-        return response_text.strip()
-
-
-if __name__ == "__main__":
-    # Test the solver
-    solver = SolverAgent()
-    
-    test_problems = [
-        "Solve x**2 + 3x - 4 = 0 for x",
-        "Integrate x**3 from 0 to 5",
-        "Find the derivative of e**x * sin(x)"
-    ]
-    
-    for problem in test_problems:
-        print(f"\n{'='*60}")
-        print(f"Problem: {problem}")
-        print(f"{'='*60}")
-        
-        result = solver.solve(problem)
-        
-        if result["error"]:
-            print(f"❌ Error: {result['error']}")
-        else:
-            print(f"Generated Code:\n{result['code']}")
+        return extract_code_from_response(response_text)

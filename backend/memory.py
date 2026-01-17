@@ -259,6 +259,7 @@ class ConversationMemory(BaseModel):
             return False
         
         # Default: if short and no math symbols, likely a follow-up
+        return len(lower_input.split()) < 10
     def search_memories(self, query: str, top_k: int = 3) -> str:
         """
         Retrieve relevant past interactions from episodic memory.

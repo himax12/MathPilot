@@ -105,4 +105,3 @@ uv run python tests/test_verifier.py
 - `tests/`: Unit and end-to-end tests.
 
 ---
-*Built with ❤️ by Antigravity*

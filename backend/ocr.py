@@ -34,6 +34,16 @@ class MathOCR:
         self._api_key = config.GEMINI_API_KEY
         self._client_instance = None
         self.model_name = config.GEMINI_VISION_MODEL
+        
+        # Google Cloud Vision (optional, falls back to Gemini-only if not configured)
+        self.use_cloud_vision = False
+        self.vision_client = None
+        try:
+            if hasattr(config, 'GOOGLE_APPLICATION_CREDENTIALS') and config.GOOGLE_APPLICATION_CREDENTIALS:
+                self.vision_client = vision.ImageAnnotatorClient()
+                self.use_cloud_vision = True
+        except Exception:
+            pass  # Fall back to Gemini-only mode
     
     @property
     def client(self):
@@ -41,15 +51,6 @@ class MathOCR:
         if self._client_instance is None:
             self._client_instance = genai.Client(api_key=self._api_key)
         return self._client_instance
-        
-        # Google Cloud Vision (optional, falls back to Gemini-only if not configured)
-        self.use_cloud_vision = False
-        try:
-            if config.GOOGLE_APPLICATION_CREDENTIALS:
-                self.vision_client = vision.ImageAnnotatorClient()
-                self.use_cloud_vision = True
-        except Exception:
-            pass  # Fall back to Gemini-only mode
     
     def extract_from_image(self, image_bytes: bytes) -> Dict[str, any]:
         """
@@ -156,13 +157,15 @@ class MathOCR:
 1. Problem statement (the scenario/word problem description)
 2. Given information (equations, values, constraints)
 3. The question being asked (find/calculate/prove what?)
-4. Any additional context
+4. Any options provided (Multiple Choice A, B, C, D)
+5. Any additional context
 
 **Output Format** (JSON):
 {
-  "problem_text_full": "Complete problem statement including all text",
+  "problem_text_full": "Complete problem statement including options (if any)",
   "given_values": ["equation1", "equation2", ...],
-  "question": "What is being asked (find X, calculate Y, etc.)",
+  "question": "What is being asked",
+  "options": ["A) option1", "B) option2", ...],
   "problem_type_hint": "algebra/calculus/probability/geometry/etc."
 }
 
@@ -214,6 +217,12 @@ Output:
             if "UNCLEAR" in problem_data.get("problem_text_full", ""):
                 return problem_data, 0.0, True
             
+            # Append options to full text if available separately
+            if problem_data.get("options") and isinstance(problem_data["options"], list):
+                options_text = "\nOptions:\n" + "\n".join(problem_data["options"])
+                if options_text not in problem_data.get("problem_text_full", ""):
+                    problem_data["problem_text_full"] += options_text
+
             # Calculate confidence
             confidence = self._calculate_confidence_structured(problem_data)
             needs_review = confidence < 0.7
@@ -226,6 +235,7 @@ Output:
                 "problem_text_full": response_text,
                 "given_values": [],
                 "question": "Unknown",
+                "options": [],
                 "problem_type_hint": "unknown"
             }, 0.5, True
     

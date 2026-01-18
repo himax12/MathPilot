@@ -13,25 +13,21 @@
             font-family: {{ theme.font_body }};
             background: {{ theme.bg_gradient }};
             color: {{ theme.text_primary }};
-            min-height: 100vh;
-            padding: 2rem;
-            line-height: 1.6;
-        }
-        
-        .deck-container {
-            max-width: 900px;
-            margin: 0 auto;
+            height: 100vh;
+            overflow: hidden; /* Hide main scrollbar */
+            display: flex;
+            flex-direction: column;
         }
         
         .deck-header {
             text-align: center;
-            margin-bottom: 3rem;
+            padding: 1rem;
+            flex-shrink: 0;
         }
         
         .deck-title {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
             background: linear-gradient(135deg, {{ theme.accent }} 0%, {{ theme.accent_secondary }} 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -40,11 +36,41 @@
         
         .deck-subtitle {
             color: {{ theme.text_muted }};
-            font-size: 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Carousel Container */
+        .carousel-container {
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+
+        .slides-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
         
         .slide {
-            margin-bottom: 2rem;
+            min-width: 100%;
+            height: 100%;
+            padding: 1rem 3rem; /* Space for buttons */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+            overflow-y: auto; /* Allow internal scrolling if content is long */
+        }
+
+        .slide.active {
             opacity: 1;
         }
         
@@ -52,240 +78,252 @@
             background: {{ theme.card_bg }};
             border: 1px solid {{ theme.card_border }};
             border-radius: 20px;
-            padding: 2rem 2.5rem;
+            padding: 2rem;
+            width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             box-shadow: {{ theme.card_shadow }};
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
-        .slide-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        /* Navigation Buttons */
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: {{ theme.card_bg }};
+            border: 1px solid {{ theme.card_border }};
+            color: {{ theme.accent }};
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
         }
-        
+
+        .nav-btn:hover {
+            background: {{ theme.accent }};
+            color: white;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: translateY(-50%);
+        }
+
+        #prevBtn { left: 10px; }
+        #nextBtn { right: 10px; }
+
+        /* Slide Content Styling (Same as before) */
         .slide-header {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         
-        .slide-icon {
-            font-size: 1.5rem;
-        }
+        .slide-icon { font-size: 1.5rem; }
         
         .slide-title {
             color: {{ theme.accent }};
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 600;
         }
         
         .slide-content {
             color: {{ theme.text_secondary }};
-            font-size: 1.05rem;
-            line-height: 1.8;
+            font-size: 1rem;
+            line-height: 1.7;
         }
         
-        .slide-content p {
-            margin-bottom: 0.75rem;
-        }
-        
-        .slide-content strong {
-            color: {{ theme.text_primary }};
-            font-weight: 600;
-        }
-        
-        .slide-content ul, .slide-content ol {
-            padding-left: 1.5rem;
-            margin: 1rem 0;
-        }
-        
-        .slide-content li {
-            margin-bottom: 0.5rem;
-        }
+        .slide-content strong { color: {{ theme.text_primary }}; font-weight: 600; }
+        .slide-content ul, .slide-content ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+        .slide-content li { margin-bottom: 0.4rem; }
         
         .slide-diagram {
             max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
             border-radius: 12px;
-            margin-top: 1.5rem;
+            margin-top: 1rem;
             border: 1px solid {{ theme.card_border }};
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
+
+        /* Slide Variations */
+        .slide-intuition .slide-card { border-left: 4px solid {{ theme.accent }}; }
+        .slide-answer .slide-card { border: 2px solid {{ theme.success }}; }
+        .slide-answer .slide-content { font-size: 1.4rem; color: {{ theme.success }}; text-align: center; }
         
-        /* Slide type variations */
-        .slide-title-slide .slide-card {
-            text-align: center;
-            padding: 3rem;
-        }
-        
-        .slide-title-slide .slide-title {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-        
-        .slide-intuition .slide-card {
-            border-left: 4px solid {{ theme.accent }};
-        }
-        
-        .slide-answer .slide-card {
-            border: 2px solid {{ theme.success }};
-            box-shadow: 0 0 40px {{ theme.accent_glow }};
-        }
-        
-        .slide-answer .slide-content {
-            font-size: 1.5rem;
-            color: {{ theme.success }};
-            text-align: center;
-            font-weight: 600;
-            padding: 1rem 0;
-        }
-        
-        .slide-step .step-number {
+        .step-number {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             background: {{ theme.accent }};
             color: white;
             border-radius: 50%;
             font-weight: 600;
-            font-size: 0.9rem;
-            margin-right: 0.75rem;
+            font-size: 0.85rem;
         }
-        
-        /* Progress indicator */
+
+        /* Progress Indicator */
         .progress-container {
             display: flex;
             justify-content: center;
             gap: 0.5rem;
-            margin-top: 3rem;
-            padding-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.1);
         }
         
         .progress-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: {{ theme.card_border }};
-            transition: background 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
         .progress-dot.active {
             background: {{ theme.accent }};
-            transform: scale(1.2);
+            transform: scale(1.3);
         }
-        
-        /* Code blocks */
+
+        /* Code Block */
         .code-block {
             background: {{ theme.code_bg }};
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
+            padding: 0.8rem;
+            border-radius: 6px;
             font-family: {{ theme.font_code }};
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             overflow-x: auto;
         }
         
-        /* KaTeX styling */
-        .katex {
-            font-size: 1.1em;
-        }
-        
-        .katex-display {
-            margin: 1rem 0;
-            text-align: center;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            body { padding: 1rem; }
-            .deck-title { font-size: 1.8rem; }
-            .slide-card { padding: 1.5rem; }
-            .slide-title { font-size: 1.2rem; }
-        }
+        /* KaTeX */
+        .katex { font-size: 1.05em; }
+        .katex-display { margin: 0.5rem 0; }
+
     </style>
 </head>
 <body>
-    <div class="deck-container">
-        <header class="deck-header">
-            <h1 class="deck-title">{{ deck.title }}</h1>
-            <p class="deck-subtitle">Generated by Math Mentor</p>
-        </header>
+    <header class="deck-header">
+        <h1 class="deck-title">{{ deck.title }}</h1>
+        <p class="deck-subtitle">Generated by Math Mentor</p>
+    </header>
+
+    <div class="carousel-container">
+        <button id="prevBtn" class="nav-btn" onclick="moveSlide(-1)">&#10094;</button>
         
-        {% for slide in deck.slides %}
-        <section class="slide slide-{{ slide.slide_type }}" data-index="{{ loop.index0 }}">
-            <div class="slide-card">
-                <div class="slide-header">
-                    {% if slide.slide_type == 'intuition' %}
-                    <span class="slide-icon">💡</span>
-                    {% elif slide.slide_type == 'step' %}
-                    <span class="step-number">{{ slide.step_number }}</span>
-                    {% elif slide.slide_type == 'visualization' %}
-                    <span class="slide-icon">📊</span>
-                    {% elif slide.slide_type == 'answer' %}
-                    <span class="slide-icon">🎯</span>
-                    {% else %}
-                    <span class="slide-icon">🧮</span>
-                    {% endif %}
-                    <h2 class="slide-title">{{ slide.title }}</h2>
-                </div>
-                <div class="slide-content">
-                    {{ slide.content | safe }}
-                </div>
-                {% if slide.diagram %}
-                <img src="data:image/png;base64,{{ slide.diagram }}" 
-                     alt="Diagram" 
-                     class="slide-diagram" />
-                {% endif %}
-            </div>
-        </section>
-        {% endfor %}
-        
-        <div class="progress-container">
+        <div class="slides-wrapper" id="slidesWrapper">
             {% for slide in deck.slides %}
-            <span class="progress-dot {% if loop.first %}active{% endif %}"></span>
+            <section class="slide slide-{{ slide.slide_type }}" data-index="{{ loop.index0 }}">
+                <div class="slide-card">
+                    <div class="slide-header">
+                        {% if slide.slide_type == 'intuition' %}
+                        <span class="slide-icon">💡</span>
+                        {% elif slide.slide_type == 'step' %}
+                        <span class="step-number">{{ slide.step_number }}</span>
+                        {% elif slide.slide_type == 'visualization' %}
+                        <span class="slide-icon">📊</span>
+                        {% elif slide.slide_type == 'answer' %}
+                        <span class="slide-icon">🎯</span>
+                        {% else %}
+                        <span class="slide-icon">🧮</span>
+                        {% endif %}
+                        <h2 class="slide-title">{{ slide.title }}</h2>
+                    </div>
+                    <div class="slide-content">
+                        {{ slide.content | safe }}
+                    </div>
+                    {% if slide.diagram %}
+                    <img src="data:image/png;base64,{{ slide.diagram }}" 
+                         alt="Diagram" 
+                         class="slide-diagram" />
+                    {% endif %}
+                </div>
+            </section>
             {% endfor %}
         </div>
+
+        <button id="nextBtn" class="nav-btn" onclick="moveSlide(1)">&#10095;</button>
+    </div>
+        
+    <div class="progress-container">
+        {% for slide in deck.slides %}
+        <span class="progress-dot {% if loop.first %}active{% endif %}" onclick="goToSlide({{ loop.index0 }})"></span>
+        {% endfor %}
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script>
-        // Render LaTeX in all slide content
+        // Render LaTeX
         document.querySelectorAll('.slide-content').forEach(el => {
             let html = el.innerHTML;
-            
-            // Inline LaTeX: $...$
             html = html.replace(/\$([^$]+)\$/g, (match, latex) => {
-                try {
-                    return katex.renderToString(latex, { throwOnError: false });
-                } catch (e) {
-                    return match;
-                }
+                try { return katex.renderToString(latex, { throwOnError: false }); } 
+                catch (e) { return match; }
             });
-            
             el.innerHTML = html;
         });
         
-        // Simple scroll-based progress indicator
-        const dots = document.querySelectorAll('.progress-dot');
+        // Carousel Logic
+        let currentIndex = 0;
         const slides = document.querySelectorAll('.slide');
-        
-        window.addEventListener('scroll', () => {
-            const scrollPos = window.scrollY + window.innerHeight / 2;
+        const wrapper = document.getElementById('slidesWrapper');
+        const dots = document.querySelectorAll('.progress-dot');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const totalSlides = slides.length;
+
+        function updateCarousel() {
+            // Move wrapper
+            wrapper.style.transform = `translateX(-${currentIndex * 100}%)`;
             
-            slides.forEach((slide, i) => {
-                const rect = slide.getBoundingClientRect();
-                const slideTop = rect.top + window.scrollY;
-                const slideBottom = slideTop + rect.height;
-                
-                if (scrollPos >= slideTop && scrollPos < slideBottom) {
-                    dots.forEach((dot, j) => {
-                        dot.classList.toggle('active', j === i);
-                    });
-                }
+            // Update active classes
+            slides.forEach((slide, index) => {
+                if (index === currentIndex) slide.classList.add('active');
+                else slide.classList.remove('active');
             });
-        });
+
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentIndex);
+            });
+
+            // Update buttons
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === totalSlides - 1;
+        }
+
+        function moveSlide(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < totalSlides) {
+                currentIndex = newIndex;
+                updateCarousel();
+            }
+        }
+
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                currentIndex = index;
+                updateCarousel();
+            }
+        }
+
+        // Initialize
+        updateCarousel();
     </script>
 </body>
 </html>

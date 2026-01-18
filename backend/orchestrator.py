@@ -105,6 +105,32 @@ class Orchestrator:
         # Be sure to set this as the active problem for context
         self.solver.memory.set_active_problem(user_input)
 
+        # Auto-Title Generation
+        # We check if title is missing (new session) and this is the first turn
+        if not self.solver.memory.session_id:
+             # Should practically never happen if memory initialized
+             pass
+        
+        # We really want to check if the session already has a title
+        # For now, we launch a fire-and-forget generation if it's the first message
+        # But to be safe and simple, we can do it inline for now or just skip if we don't have async background tasks easily set up.
+        # Let's do a simple check: if we are in a new session (len messages == 0 before this), generate title.
+        
+        # ACTUALLY: The memory ALREADY has the user message added a few lines above.
+        # So len(messages) would be 1 (User).
+        if len(self.solver.memory.messages) == 1:
+            try:
+                # Generate a short title
+                title_prompt = f"Generate a short, descriptive title (3-5 words) for a math session starting with: '{user_input}'. Return ONLY the title, no quotes."
+                title = self.solver.client.models.generate_content(
+                    model=self.solver.model_name,
+                    contents=title_prompt
+                ).text.strip().replace('"', '')
+                
+                self.solver.memory.update_title(title)
+            except Exception as e:
+                print(f"Title generation failed: {e}")
+
         ctx = PipelineContext(raw_input=user_input)
         events = []  # Log of what happened (for UI)
         

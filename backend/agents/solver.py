@@ -120,7 +120,15 @@ You are a friendly Math Mentor continuing a conversation.
         if self.rag.ready:
             rag_context = self.rag.retrieve(problem)
 
-        prompt = self._build_prompt(problem, rag_context)
+        # Episodic Memory Retrieval (Self-Learning)
+        memory_context = ""
+        try:
+            # We look for similar past problems to see how we solved them
+            memory_context = self.memory.search_memories(problem, top_k=2)
+        except Exception:
+            pass
+
+        prompt = self._build_prompt(problem, rag_context, memory_context)
         
         try:
             response = self.client.models.generate_content(
@@ -211,7 +219,7 @@ Create a clear, step-by-step explanation for: "{problem}"
              
         return base_prompt
 
-    def _build_prompt(self, problem: str, rag_context: str = "") -> str:
+    def _build_prompt(self, problem: str, rag_context: str = "", memory_context: str = "") -> str:
         """
         Build the prompt for code generation.
         
@@ -222,7 +230,10 @@ Create a clear, step-by-step explanation for: "{problem}"
         """
         full_problem = problem
         if rag_context:
-            full_problem = f"{problem}\n\n[RELEVANT MATH KNOWLEDGE]\n{rag_context}"
+            full_problem += f"\n\n[RELEVANT MATH KNOWLEDGE]\n{rag_context}"
+        
+        if memory_context:
+            full_problem += f"\n\n[PAST EXPERIENCE / SIMILAR PROBLEMS]\nUse this history to avoid previous mistakes:\n{memory_context}"
             
         try:
             from prompts import get_prompt

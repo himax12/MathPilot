@@ -331,6 +331,39 @@ async def get_history():
 
 # ===== Run Server =====
 
+
+# ===== Session Management Endpoints =====
+
+@app.get("/api/sessions")
+async def list_sessions():
+    """Get all past sessions."""
+    if not orchestrator:
+         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    return orchestrator.solver.memory.get_all_sessions()
+
+@app.post("/api/sessions/{session_id}/restore")
+async def restore_session(session_id: str):
+    """Restore a specific session."""
+    if not orchestrator:
+         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    success = orchestrator.solver.memory.restore_session_by_id(session_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "restored", "session_id": session_id}
+
+@app.post("/api/sessions/new")
+async def new_session():
+    """Start a fresh session."""
+    if not orchestrator:
+         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    orchestrator.solver.memory.clear()
+    return {"status": "new_session", "session_id": orchestrator.solver.memory.session_id}
+
+
+# ===== Run Server =====
+
 if __name__ == "__main__":
     import uvicorn
     

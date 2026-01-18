@@ -33,27 +33,35 @@ def handle_image_input():
         
         # Extract LaTeX
         with st.spinner("🔍 Extracting math expression..."):
-            # Resize and compress image to stay under API payload limits (20 MB)
-            image_bytes = io.BytesIO()
+            image_bytes_data = None
             
-            # Resize if image is too large (max dimension 2048px)
-            max_dimension = 2048
-            if max(image.size) > max_dimension:
-                ratio = max_dimension / max(image.size)
-                new_size = tuple(int(dim * ratio) for dim in image.size)
-                image = image.resize(new_size, Image.Resampling.LANCZOS)
-                st.info(f"📏 Image resized to {new_size[0]}x{new_size[1]} for optimal processing")
-            
-            # Convert to RGB if needed (for JPEG compatibility)
-            if image.mode in ('RGBA', 'LA', 'P'):
-                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
-                rgb_image.paste(image, mask=image.split()[-1] if 'A' in image.mode else None)
-                image = rgb_image
-            
-            # Save as JPEG with quality optimization
-            image.save(image_bytes, format='JPEG', quality=85, optimize=True)
-            
-            ocr_result = st.session_state.ocr.extract_from_image(image_bytes.getvalue())
+            # Smart-Pass: If image is reasonable size (< 4MB) and standard format, SEND AS IS.
+            # This avoids PIL re-encoding corruption (e.g. contrast loss, transparency issues).
+            if uploaded_file.size < 4 * 1024 * 1024:
+                image_bytes_data = uploaded_file.getvalue()
+                # Debug display
+                with st.expander("🛠️ Debug: Raw Image Sent to AI", expanded=False):
+                    st.image(image_bytes_data, caption="Bit-exact Raw Payload")
+            else:
+                # Resize if image is extremely large (max dimension 3072px) to prevent API errors
+                # 3072px is plenty for OCR and keeps us well under 20MB limit
+                image_bytes_io = io.BytesIO()
+                max_dimension = 3072
+                if max(image.size) > max_dimension:
+                    ratio = max_dimension / max(image.size)
+                    new_size = tuple(int(dim * ratio) for dim in image.size)
+                    image = image.resize(new_size, Image.Resampling.LANCZOS)
+                    st.info(f"📏 Optimized image resolution to {new_size[0]}x{new_size[1]}")
+                
+                # Convert to RGB to ensure compatibility (remove alpha)
+                if image.mode in ('RGBA', 'LA', 'P'):
+                    image = image.convert('RGB')
+                
+                # Save as PNG (lossless) to preserve text details for OCR
+                image.save(image_bytes_io, format='PNG')
+                image_bytes_data = image_bytes_io.getvalue()
+
+            ocr_result = st.session_state.ocr.extract_from_image(image_bytes_data)
         
         if ocr_result["error"]:
             st.error(f"❌ OCR Error: {ocr_result['error']}")

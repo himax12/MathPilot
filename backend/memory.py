@@ -42,7 +42,8 @@ import json
 import uuid
 from datetime import datetime
 
-DB_PATH = "math_mentor.db"
+import os
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "math_mentor.db")
 
 # Import Episodic Memory
 try:
@@ -97,11 +98,18 @@ class ConversationMemory(BaseModel):
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     session_id TEXT PRIMARY KEY,
+                    title TEXT,
                     active_problem TEXT,
                     active_answer TEXT,
                     last_updated REAL
                 )
             """)
+            
+            # Migration: Check if title column exists, if not add it
+            try:
+                conn.execute("ALTER TABLE conversations ADD COLUMN title TEXT")
+            except sqlite3.OperationalError:
+                pass # Column likely already exists
 
     def _load_history(self):
         """Load history from the database for the current session (or most recent)."""
@@ -278,3 +286,79 @@ class ConversationMemory(BaseModel):
             return "\n\n".join(out)
         except Exception:
             return ""
+
+    def get_all_sessions(self) -> List[dict]:
+        """Retrieve all saved sessions metadata."""
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("SELECT session_id, title, last_updated FROM conversations ORDER BY last_updated DESC")
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching sessions: {e}")
+            return []
+
+    def restore_session_by_id(self, session_id: str) -> bool:
+        """Restore a specific session by ID."""
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                # Get conversation metadata
+                cursor = conn.execute("SELECT active_problem, active_answer FROM conversations WHERE session_id = ?", (session_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return False
+                
+                self.session_id = session_id
+                self.active_problem, self.active_answer = row
+                
+                # Get messages
+                cursor = conn.execute("SELECT role, content, deck_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
+                self.messages = []
+                for role, content, deck_json, ts in cursor.fetchall():
+                    deck = None
+                    if deck_json and MathDeck:
+                        try:
+                            deck = MathDeck.model_validate_json(deck_json)
+                        except Exception: pass
+                    
+                    self.messages.append(ChatMessage(
+                        role=role,
+                        content=content,
+                        deck=deck,
+                        timestamp=ts
+                    ))
+                return True
+        except Exception as e:
+            print(f"Error restoring session {session_id}: {e}")
+            return False
+
+    def update_title(self, title: str, session_id: Optional[str] = None) -> None:
+        """
+        Update the title of a session.
+        If session_id is None, updates the current active session.
+        """
+        target_id = session_id or self.session_id
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute("UPDATE conversations SET title = ? WHERE session_id = ?", (title, target_id))
+        except Exception as e:
+            print(f"Error updating title for {target_id}: {e}")
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session and all its messages.
+        Returns: True if successful.
+        """
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute("PRAGMA foreign_keys = ON") # Ensure messages are deleted if cascading is set up (usually manual in sqlite)
+                conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+                conn.execute("DELETE FROM conversations WHERE session_id = ?", (session_id,))
+            
+            # If we deleted the active session, clear memory
+            if session_id == self.session_id:
+                self.clear()
+            return True
+        except Exception as e:
+            print(f"Error deleting session {session_id}: {e}")
+            return False

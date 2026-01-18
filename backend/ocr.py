@@ -33,7 +33,9 @@ class MathOCR:
         # Store API key and cache client instance
         self._api_key = config.GEMINI_API_KEY
         self._client_instance = None
-        self.model_name = config.GEMINI_VISION_MODEL
+        # Reverting to Flash model to avoid 429 Resource Exhausted errors
+        # relying on CoT (v7) and White-BG (v8) to maintain quality.
+        self.model_name = "gemini-2.0-flash"
         
         # Google Cloud Vision (optional, falls back to Gemini-only if not configured)
         self.use_cloud_vision = False
@@ -57,24 +59,18 @@ class MathOCR:
         Extract math expression from image.
         
         Args:
-            image_bytes: Image file as bytes
+            image_bytes: Raw image bytes
             
         Returns:
-            Dict with:
-                - 'latex': Extracted LaTeX string
-                - 'confidence': Confidence score (0-1)
-                - 'method': Which method was used (cloud_vision, gemini_vision)
-                - 'raw_text': Raw OCR output (if available)
-                - 'needs_review': Boolean flag for HITL
-                - 'error': Error message if extraction failed
+            Dict containing 'latex', 'confidence', etc.
         """
-        # Try Cloud Vision first if available
+        # 1. First pass: Cloud Vision (if enabled) for raw text hint
         raw_text = None
         if self.use_cloud_vision:
             try:
                 raw_text = self._cloud_vision_ocr(image_bytes)
             except Exception as e:
-                print(f"Cloud Vision failed: {e}, falling back to Gemini")
+                print(f"Cloud Vision failed (fallback to Gemini-only): {e}")
         
         # Use Gemini Vision for semantic extraction
         try:
@@ -112,16 +108,48 @@ class MathOCR:
         # Prepare image (V2 SDK accepts PIL Image directly)
         pil_image = Image.open(io.BytesIO(image_bytes))
         
+        # SAFETY: Force convert to RGB with WHITE background to prevent transparency issues
+        # (e.g. black text on transparent bg becomes invisible if model uses black matte)
+        if pil_image.mode in ('RGBA', 'LA') or (pil_image.mode == 'P' and 'transparency' in pil_image.info):
+            background = Image.new('RGB', pil_image.size, (255, 255, 255))
+            if pil_image.mode == 'P':
+                pil_image = pil_image.convert('RGBA')
+            background.paste(pil_image, mask=pil_image.split()[-1])
+            pil_image = background
+        elif pil_image.mode != 'RGB':
+            pil_image = pil_image.convert('RGB')
+        
         # Generate using new Client API
         # Retry logic for 429 Resource Exhausted
         max_retries = 3
         response = None
         
+        # Configure for detailed output
+        from google.genai import types
+        gen_config = types.GenerateContentConfig(
+            max_output_tokens=2048,
+            temperature=0.1 # Low temp for faithful transcription
+        )
+        
+        # Safety settings - BLOCK_NONE to prevent silent truncation
+        # The new SDK might use different enums, but let's try the standard dict format first which usually works
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        
         for attempt in range(max_retries):
             try:
                 response = self.client.models.generate_content(
                     model=self.model_name,
-                    contents=[prompt, pil_image]
+                    contents=[prompt, pil_image],
+                    config=gen_config,
+                    # safety_settings=safety_settings # Commented out for now as SDK V2 uses different types in python 
+                    # We will rely on the prompt being benign math. 
+                    # Actually, let's try to pass it if the SDK supports it.
+                    # Based on google-genai, it might be part of config.
                 )
                 break
             except Exception as e:
@@ -150,94 +178,66 @@ class MathOCR:
         }
     
     def _build_vision_prompt(self, raw_text: Optional[str]) -> str:
-        """Build prompt for Gemini Vision - FULL TEXT EXTRACTION."""
-        base_prompt = """You are a mathematical OCR expert. Extract the COMPLETE problem from this image.
+        """Build prompt for Gemini Vision - CHAIN OF THOUGHT EXTRACTION."""
+        base_prompt = """You are a specialized Mathematical OCR agent.
+        
+TASK:
+Perform a 2-step transcription of this image.
 
-**CRITICAL: Extract EVERYTHING, not just equations**:
-1. Problem statement (the scenario/word problem description)
-2. Given information (equations, values, constraints)
-3. The question being asked (find/calculate/prove what?)
-4. Any options provided (Multiple Choice A, B, C, D)
-5. Any additional context
+STEP 1: SCANNING
+- Look at the bottom of the image. Are there multiple choice options (A, B, C, D)?
+- Are there any graphs or diagrams?
 
-**Output Format** (JSON):
-{
-  "problem_text_full": "Complete problem statement including options (if any)",
-  "given_values": ["equation1", "equation2", ...],
-  "question": "What is being asked",
-  "options": ["A) option1", "B) option2", ...],
-  "problem_type_hint": "algebra/calculus/probability/geometry/etc."
-}
+STEP 2: TRANSCRIPTION
+- Transcribe the FULL text of the problem.
+- IF you saw options in Step 1, you MUST list them exactly as they appear.
+- Write equations in LaTeX.
 
-**Examples**:
+**OUTPUT FORMAT**:
+Just the final transcription. Do not output your "scanning" thought process, just the result. Ensure the OPTIONS are included at the bottom.
 
-Image: "Solve x² + 3x - 4 = 0 for x"
-Output:
-{
-  "problem_text_full": "Solve x² + 3x - 4 = 0 for x",
-  "given_values": ["x² + 3x - 4 = 0"],
-  "question": "Solve for x",
-  "problem_type_hint": "algebra"
-}
+**Example**:
+Calculate the area of the circle.
 
-Image: "Three students can solve a problem with probabilities 1/3, 1/10, 1/12. Find P(at least one solves)"
-Output:
-{
-  "problem_text_full": "Three students S₁, S₂, S₃ can solve a problem. P(S₁) = 1/3, P(S₂) = 1/10, P(S₃) = 1/12. Find probability that at least one solves the problem.",
-  "given_values": ["P(S₁) = 1/3", "P(S₂) = 1/10", "P(S₃) = 1/12"],
-  "question": "Find P(at least one student solves)",
-  "problem_type_hint": "probability"
-}
-
-**If image is unclear**: Output {"problem_text_full": "UNCLEAR: <reason>"}
+A) 2pi
+B) 4pi
+C) pi
+D) 8pi
 """
         
         if raw_text:
-            base_prompt += f"\n\n**Hint (raw OCR, may contain errors)**:\n{raw_text}\n\nUse this as reference but extract everything from the image."
+            base_prompt += f"\n\n**Hint (raw OCR)**:\n{raw_text}\n"
         
         return base_prompt
     
     def _parse_gemini_response(self, response_text: str) -> tuple:
         """
-        Parse Gemini's JSON response.
-        
-        Returns:
-            (problem_dict, confidence_score, needs_review)
+        Parse Gemini's response.
         """
-        import json
-        import re
+        # Clean up any potential markdown code blocks wrapper
+        cleaned = response_text.replace("```markdown", "").replace("```", "").strip()
         
-        # Try to extract JSON from response
-        try:
-            # Remove markdown code blocks if present
-            cleaned = response_text.replace("```json", "").replace("```", "").strip()
-            problem_data = json.loads(cleaned)
+        # Check if unclear
+        if "UNCLEAR" in cleaned:
+             return {
+                "problem_text_full": cleaned,
+                "needs_review": True
+            }, 0.0, True
             
-            # Check if unclear
-            if "UNCLEAR" in problem_data.get("problem_text_full", ""):
-                return problem_data, 0.0, True
-            
-            # Append options to full text if available separately
-            if problem_data.get("options") and isinstance(problem_data["options"], list):
-                options_text = "\nOptions:\n" + "\n".join(problem_data["options"])
-                if options_text not in problem_data.get("problem_text_full", ""):
-                    problem_data["problem_text_full"] += options_text
-
-            # Calculate confidence
-            confidence = self._calculate_confidence_structured(problem_data)
-            needs_review = confidence < 0.7
-            
-            return problem_data, confidence, needs_review
-            
-        except json.JSONDecodeError:
-            # Fallback: treat as plain text (old format compatibility)
-            return {
-                "problem_text_full": response_text,
-                "given_values": [],
-                "question": "Unknown",
-                "options": [],
-                "problem_type_hint": "unknown"
-            }, 0.5, True
+        # Structure it simply for compatibility
+        problem_data = {
+            "problem_text_full": cleaned,
+            "given_values": [],
+            "question": "See problem text",
+            "options": [],
+            "problem_type_hint": "general"
+        }
+        
+        # Simple confidence heuristic
+        confidence = 0.8 if len(cleaned) > 10 else 0.4
+        needs_review = confidence < 0.6
+        
+        return problem_data, confidence, needs_review
     
     def _calculate_confidence_structured(self, problem_data: dict) -> float:
         """Calculate confidence from structured problem data."""

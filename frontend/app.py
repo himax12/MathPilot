@@ -26,31 +26,67 @@ def init_session_state():
     # Initialize Orchestrator
     if "orchestrator" not in st.session_state:
         st.session_state.orchestrator = Orchestrator()
+        # Hot-fix for stale session state during development
+        # Hot-fix for stale session state during development
+        # If the existing memory object doesn't have the new method, force re-creation
+        # Also force reload for OCR update (v8 fix: Transparency Safe Composite)
+        if not hasattr(st.session_state.orchestrator.solver.memory, 'get_all_sessions') or not st.session_state.get('ocr_fix_applied_v8'):
+            st.warning("⚠️ Updating system to new version (reloading OCR v8.0)...")
+            
+            # FORCE RELOAD of backend modules to pick up changes
+            import importlib
+            import backend.memory
+            import backend.agents.solver
+            import backend.orchestrator
+            import backend.ocr
+            
+            importlib.reload(backend.memory)
+            importlib.reload(backend.agents.solver)
+            importlib.reload(backend.orchestrator)
+            importlib.reload(backend.ocr)
+            
+            # Use the reloaded module to get the class, without shadowing the global 'Orchestrator' name
+            st.session_state.orchestrator = backend.orchestrator.Orchestrator()
+            st.session_state.ocr_fix_applied_v6 = True
+            
+            # Since we re-created the orchestrator, we should try to restore the session again
+            if st.session_state.orchestrator.restore_session():
+                 st.success("✅ Restored previous conversation (after update)!")
+            st.rerun()
+
+    # Normal initialization flow: Only restore if we JUST created the orchestrator
+    # This prevents "New Chat" (which triggers rerun) from being overwritten by the old DB session
+    if "orchestrator" not in st.session_state or not getattr(st.session_state, '_has_restored', False):
+         if st.session_state.orchestrator.restore_session():
+             st.success("✅ Restored previous conversation!")
+         st.session_state._has_restored = True
     
     # Initialize deck generator
     if 'deck_generator' not in st.session_state:
         st.session_state.deck_generator = DeckGenerator(theme="dark")
     
-    # Attempt to restore previous conversation
-    if st.session_state.orchestrator.restore_session():
-        st.success("✅ Restored previous conversation!")
-    
     # Initialize messages list for frontend display
     if 'messages' not in st.session_state:
         st.session_state.messages = []
     
-    # Display chat history from memory
-    messages = st.session_state.orchestrator.solver.memory.messages
-    for msg in messages:
-        with st.chat_message(msg.role):
-            st.markdown(msg.content)
+    # Sync backend memory to frontend state if frontend is empty but backend isn't
+    # This handles the initial load from DB
+    if not st.session_state.messages:
+        backend_messages = st.session_state.orchestrator.solver.memory.messages
+        for msg in backend_messages:
+            deck_html = None
             if msg.deck:
                 try:
                     deck_html = st.session_state.deck_generator.from_structured(msg.deck)
-                    with st.expander("📊 Visual Explanation"):
-                        st.components.v1.html(deck_html, height=600, scrolling=True)
-                except Exception as e:
-                    st.warning(f"Could not render deck: {e}")
+                except Exception:
+                    pass
+            
+            st.session_state.messages.append({
+                "role": msg.role,
+                "content": msg.content,
+                "deck_html": deck_html,
+                "events": [] # Past events not persisted
+            })
     
     if 'ocr' not in st.session_state:
         st.session_state.ocr = None
@@ -128,74 +164,135 @@ def main():
     st.title("🧮 Math Mentor")
     st.caption("Powered by Multi-Agent RAG & Reflexion")
     
-    # Sidebar with multimodal input
+    # Custom CSS for ChatGPT-like feel
+    st.markdown("""
+    <style>
+        /* Main Chat Area */
+        .stChatMessage {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .stChatMessage[data-testid="stChatMessageUser"] {
+            background-color: #2b2b2b;
+        }
+        .stChatMessage[data-testid="stChatMessageAssistant"] {
+            background-color: transparent;
+        }
+        
+        /* Sidebar Styles */
+        section[data-testid="stSidebar"] {
+            background-color: #202123;
+        }
+        
+        /* Input Styling */
+        .stChatInput textarea {
+            background-color: #40414f;
+            color: white;
+        }
+        
+        /* Font Tweak (Optional) */
+        body {
+            font-family: 'Söhne', 'ui-sans-serif', 'system-ui', -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Sidebar with ChatGPT-style History
     with st.sidebar:
-        st.header("📥 Input Options")
-        
-        input_mode = st.radio(
-            "Choose input method:",
-            ["💬 Chat", "📷 Image Upload", "🎤 Audio Input"],
-            horizontal=False
-        )
-        
+        # 1. New Chat Button (Top Priority)
+        if st.button("➕ New Chat", use_container_width=True, type="primary"):
+            st.session_state.orchestrator.clear_conversation()
+            st.session_state.messages = []
+            st.session_state.pending_input = None
+            st.rerun()
+            
         st.divider()
         
+        # 2. History List
+        st.subheader("🕒 History")
+        
+        # Fetch sessions directly from memory
+        sessions = st.session_state.orchestrator.solver.memory.get_all_sessions()
+        
+        # Display sessions as buttons
+        if not sessions:
+            st.caption("No history yet.")
+        
+        # Display sessions with options
+        for s in sessions:
+            # Layout: Button (Left) + Options (Right)
+            col1, col2 = st.columns([0.85, 0.15])
+            
+            # Data
+            is_active = (s['session_id'] == st.session_state.orchestrator.solver.memory.session_id)
+            title = s['title'] if s['title'] else f"Session {s['session_id'][:8]}"
+            icon = "🟢" if is_active else "📄"
+            label = f"{icon} {title}"
+            
+            with col1:
+                if st.button(label, key=f"btn_{s['session_id']}", use_container_width=True):
+                    if st.session_state.orchestrator.solver.memory.restore_session_by_id(s['session_id']):
+                        st.session_state.messages = []
+                        # Sync frontend
+                        for m in st.session_state.orchestrator.solver.memory.messages:
+                            deck_html = None
+                            if m.deck:
+                                try:
+                                    deck_html = st.session_state.deck_generator.from_structured(m.deck)
+                                except: pass
+                            st.session_state.messages.append({
+                                "role": m.role,
+                                "content": m.content,
+                                "deck_html": deck_html,
+                                "events": []
+                            })
+                        st.rerun()
+            
+            with col2:
+                # Per-session Options Popover
+                with st.popover("⋮", use_container_width=True):
+                    st.caption("Options")
+                    
+                    # Rename
+                    new_name = st.text_input("Name", value=s['title'] or "", key=f"input_{s['session_id']}")
+                    if st.button("Rename", key=f"ren_{s['session_id']}", use_container_width=True):
+                        if new_name.strip():
+                            st.session_state.orchestrator.solver.memory.update_title(new_name, s['session_id'])
+                            st.rerun()
+                    
+                    st.divider()
+                    
+                    # Delete
+                    if st.button("🗑️ Delete", key=f"del_{s['session_id']}", type="primary", use_container_width=True):
+                        st.session_state.orchestrator.solver.memory.delete_session(s['session_id'])
+                        st.rerun()
+
+        st.divider()
+
+        # 3. Input Options (Moved to bottom or collapsible)
+        with st.expander("⚙️ Input Settings", expanded=False):
+            input_mode = st.radio(
+                "Input Method:",
+                ["💬 Chat", "📷 Image Upload", "🎤 Audio Input"],
+                index=0
+            )
+
         if input_mode == "📷 Image Upload":
-            st.subheader("📷 Upload Math Problem")
+            st.caption("Upload Math Problem")
             from helper_inputs import handle_image_input
             extracted_text = handle_image_input()
-            
-            if extracted_text and st.button("✅ Use This Problem", use_container_width=True):
+            if extracted_text and st.button("✅ Solve Image", use_container_width=True):
                 st.session_state.pending_input = extracted_text
                 st.rerun()
         
         elif input_mode == "🎤 Audio Input":
-            st.subheader("🎤 Speak Your Problem")
+            st.caption("Speak Your Problem")
             from helper_inputs import handle_audio_input
             transcribed_text = handle_audio_input()
-            
-            if transcribed_text and st.button("✅ Use This Problem", use_container_width=True):
+            if transcribed_text and st.button("✅ Solve Audio", use_container_width=True):
                 st.session_state.pending_input = transcribed_text
                 st.rerun()
-        
-        st.divider()
-        st.subheader("💾 Memory")
-        if st.button("📂 Load Last Session", use_container_width=True):
-            if st.session_state.orchestrator.solver.memory.restore_last_session():
-                st.session_state.messages = []
-                # Sync frontend state with backend memory
-                for m in st.session_state.orchestrator.solver.memory.messages:
-                    deck_html = None
-                    if m.deck:
-                        try:
-                            deck_html = st.session_state.deck_generator.from_structured(m.deck)
-                        except: pass
-                    
-                    st.session_state.messages.append({
-                        "role": m.role,
-                        "content": m.content,
-                        "deck_html": deck_html,
-                        "events": [] # Events not persisted
-                    })
-                st.success("History loaded!")
-                st.rerun()
-            else:
-                st.warning("No previous session found.")
-
-        st.divider()
-        
-        if st.button("🗑️ Clear Conversation", use_container_width=True):
-            st.session_state.messages = []
-            # Reset orchestrator memory (via Solver)
-            st.session_state.orchestrator.solver.reset_conversation()
-            st.session_state.pending_input = None
-            st.rerun()
-        
-        st.divider()
-        st.markdown("**📚 Try asking:**")
-        st.markdown("- Solve x² - 4 = 0")
-        st.markdown("- Integrate sin(x) from 0 to pi")
-        st.markdown("- Explain the concept of derivatives")
     
     # Process pending input from image/audio
     if st.session_state.pending_input:
@@ -205,8 +302,11 @@ def main():
         st.rerun() # Rerun to show the message
     
     # Display chat history
-    for msg in st.session_state.messages:
-        render_message(msg)
+    try:
+        for msg in st.session_state.messages:
+            render_message(msg)
+    except Exception as e:
+        st.error(f"Error rendering conversation: {e}")
     
     # Chat input (always at bottom)
     if user_input := st.chat_input("Ask a math question..."):

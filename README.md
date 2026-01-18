@@ -31,6 +31,52 @@ The application is structured as a pipeline of specialized agents coordinated by
 *   **Vector Store (FAISS)**: Stores embeddings of past interactions for semantic retrieval.
 *   **Relational DB (SQLite)**: Logs full conversation history, user feedback, and verification states for auditability.
 
+### System Diagram
+
+```mermaid
+flowchart TD
+    %% Nodes
+    User([User])
+    UI[Frontend Interface]
+    Orchestrator{Orchestrator}
+    
+    subgraph Perception ["Perception Layer"]
+        OCR[OCR Engine]
+        ASR[ASR Engine]
+    end
+    
+    subgraph Agents ["Cognitive Layer"]
+        Parser[Parser Agent]
+        Solver[Solver Agent]
+        Verifier[Verifier Agent]
+    end
+    
+    subgraph Memory ["Memory System"]
+        RAG[(Knowledge Base)]
+        History[(Episodic DB)]
+    end
+    
+    %% Edges
+    User <--> UI
+    UI -->|Image| OCR
+    UI -->|Audio| ASR
+    UI -->|Text| Orchestrator
+    OCR --> Orchestrator
+    ASR --> Orchestrator
+    
+    Orchestrator --> Parser
+    Parser --> Orchestrator
+    
+    Orchestrator --> Solver
+    Solver <--> RAG
+    Solver <--> History
+    
+    Solver -->|Code| Verifier
+    Verifier -->|Validation| Orchestrator
+    
+    Orchestrator -->|Verified Solution| UI
+```
+
 ## Technology Stack
 
 *   **Frontend**: Streamlit (Python)

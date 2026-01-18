@@ -14,6 +14,57 @@ except ImportError:
     MathDeck = None  # Fallback if models not available
 
 
+class SolutionState(BaseModel):
+    """Complete pipeline state for an assistant response.
+    
+    Captures the full context of how a solution was generated,
+    enabling proper session restore and self-learning.
+    """
+    # RAG & Solving Context
+    rag_context: Optional[str] = Field(
+        None,
+        description="Retrieved knowledge base documents used for solving"
+    )
+    solving_mode: Optional[str] = Field(
+        None,
+        description="How the problem was solved: 'KB-Guided' or 'LLM-Only'"
+    )
+    
+    # Solver Output
+    code: Optional[str] = Field(
+        None,
+        description="Generated SymPy code"
+    )
+    reasoning: Optional[str] = Field(
+        None,
+        description="LLM's reasoning/explanation text"
+    )
+    answer: Optional[str] = Field(
+        None,
+        description="Computed answer value"
+    )
+    
+    # Verification Results
+    is_verified: bool = Field(
+        False,
+        description="Whether the solution passed verification"
+    )
+    confidence: float = Field(
+        0.0,
+        description="Verification confidence score (0.0-1.0)"
+    )
+    verification_issues: List[str] = Field(
+        default_factory=list,
+        description="Issues found during verification"
+    )
+    
+    # Reflexion Metadata
+    reflexion_attempts: int = Field(
+        1,
+        description="Number of solve-verify-reflect cycles used"
+    )
+
+
 class ChatMessage(BaseModel):
     """A single message in the conversation."""
     role: Literal["user", "assistant", "system"] = Field(
@@ -27,6 +78,10 @@ class ChatMessage(BaseModel):
     deck: Optional[MathDeck] = Field(
         None, 
         description="Optional structured deck for visual explanations"
+    )
+    solution_state: Optional[SolutionState] = Field(
+        None,
+        description="Complete solution state for assistant messages"
     )
     timestamp: float = Field(
         default_factory=time.time,
@@ -92,6 +147,7 @@ class ConversationMemory(BaseModel):
                     role TEXT,
                     content TEXT,
                     deck_json TEXT,
+                    solution_state_json TEXT,
                     timestamp REAL
                 )
             """)
@@ -108,6 +164,12 @@ class ConversationMemory(BaseModel):
             # Migration: Check if title column exists, if not add it
             try:
                 conn.execute("ALTER TABLE conversations ADD COLUMN title TEXT")
+            except sqlite3.OperationalError:
+                pass # Column likely already exists
+            
+            # Migration: Add solution_state_json column if it doesn't exist
+            try:
+                conn.execute("ALTER TABLE messages ADD COLUMN solution_state_json TEXT")
             except sqlite3.OperationalError:
                 pass # Column likely already exists
 
@@ -130,11 +192,11 @@ class ConversationMemory(BaseModel):
                 if row:
                     self.session_id, self.active_problem, self.active_answer = row
                     
-                    # Load messages
-                    cursor = conn.execute("SELECT role, content, deck_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (self.session_id,))
+                    # Load messages (include solution_state)
+                    cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (self.session_id,))
                     
                     self.messages = []
-                    for role, content, deck_json, ts in cursor.fetchall():
+                    for role, content, deck_json, state_json, ts in cursor.fetchall():
                         deck = None
                         if deck_json and MathDeck:
                             try:
@@ -142,10 +204,18 @@ class ConversationMemory(BaseModel):
                             except Exception:
                                 pass # Ignore deck errors
                         
+                        solution_state = None
+                        if state_json:
+                            try:
+                                solution_state = SolutionState.model_validate_json(state_json)
+                            except Exception:
+                                pass # Ignore state errors
+                        
                         self.messages.append(ChatMessage(
                             role=role, 
                             content=content, 
-                            deck=deck, 
+                            deck=deck,
+                            solution_state=solution_state,
                             timestamp=ts
                         ))
                     return True
@@ -164,9 +234,9 @@ class ConversationMemory(BaseModel):
             except Exception as e:
                 print(f"Episodic add failed: {e}")
     
-    def add_assistant_message(self, content: str, deck: Optional[MathDeck] = None) -> None:
-        """Add an assistant message (with optional deck) and persist."""
-        msg = ChatMessage(role="assistant", content=content, deck=deck)
+    def add_assistant_message(self, content: str, deck: Optional[MathDeck] = None, solution_state: Optional[SolutionState] = None) -> None:
+        """Add an assistant message (with optional deck and solution state) and persist."""
+        msg = ChatMessage(role="assistant", content=content, deck=deck, solution_state=solution_state)
         self.messages.append(msg)
         self._persist_message(msg)
         if self._episodic:
@@ -174,13 +244,22 @@ class ConversationMemory(BaseModel):
                 self._episodic.add_interaction("assistant", content, self.session_id)
              except Exception: pass
 
+    def add_feedback(self, problem: str, wrong_answer: str, correct_answer: str, explanation: str) -> None:
+        """Add user feedback (correction) to episodic memory."""
+        if self._episodic:
+            try:
+                self._episodic.add_feedback(problem, wrong_answer, correct_answer, explanation, self.session_id)
+            except Exception as e:
+                print(f"Failed to add feedback: {e}")
+
     def _persist_message(self, msg: ChatMessage):
         """Save message to SQLite."""
         deck_json = msg.deck.model_dump_json() if msg.deck else None
+        state_json = msg.solution_state.model_dump_json() if msg.solution_state else None
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(
-                "INSERT INTO messages (session_id, role, content, deck_json, timestamp) VALUES (?, ?, ?, ?, ?)",
-                (self.session_id, msg.role, msg.content, deck_json, msg.timestamp)
+                "INSERT INTO messages (session_id, role, content, deck_json, solution_state_json, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (self.session_id, msg.role, msg.content, deck_json, state_json, msg.timestamp)
             )
 
     def set_active_problem(self, problem: str, answer: Optional[str] = None) -> None:
@@ -282,7 +361,12 @@ class ConversationMemory(BaseModel):
                  # Filter out current session if needed? For now include all.
                  role = r.get('role', 'unknown').upper()
                  content = r.get('content', '').strip()
-                 out.append(f"PAST INTERACTION ({role}): {content}")
+                 
+                 # If it's a structured feedback entry, keep it raw (it's already formatted)
+                 if "[FEEDBACK ENTRY]" in content:
+                     out.append(content)
+                 else:
+                     out.append(f"PAST INTERACTION ({role}): {content}")
             return "\n\n".join(out)
         except Exception:
             return ""
@@ -311,20 +395,27 @@ class ConversationMemory(BaseModel):
                 self.session_id = session_id
                 self.active_problem, self.active_answer = row
                 
-                # Get messages
-                cursor = conn.execute("SELECT role, content, deck_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
+                # Get messages (include solution_state)
+                cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
                 self.messages = []
-                for role, content, deck_json, ts in cursor.fetchall():
+                for role, content, deck_json, state_json, ts in cursor.fetchall():
                     deck = None
                     if deck_json and MathDeck:
                         try:
                             deck = MathDeck.model_validate_json(deck_json)
                         except Exception: pass
                     
+                    solution_state = None
+                    if state_json:
+                        try:
+                            solution_state = SolutionState.model_validate_json(state_json)
+                        except Exception: pass
+                    
                     self.messages.append(ChatMessage(
                         role=role,
                         content=content,
                         deck=deck,
+                        solution_state=solution_state,
                         timestamp=ts
                     ))
                 return True

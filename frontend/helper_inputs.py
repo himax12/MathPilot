@@ -67,10 +67,11 @@ def handle_image_input():
             st.error(f"❌ OCR Error: {ocr_result['error']}")
             return None
         
-        # Display extracted LaTeX
+        # Display extracted expression (use expander to prevent overflow)
         st.markdown("**Extracted Expression**")
         if ocr_result["latex"] and not str(ocr_result["latex"]).startswith("UNCLEAR"):
-            st.code(ocr_result["latex"])
+            with st.expander("📄 View Full Extraction", expanded=True):
+                st.markdown(ocr_result["latex"])
         else:
             st.warning("⚠️ OCR unclear - manual input required")
             

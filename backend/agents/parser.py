@@ -154,6 +154,59 @@ Now parse the given problem.
                 "domain": "unknown",
                 "approach": ""
             }
+    
+    def is_math_related(self, text: str) -> Dict:
+        """
+        Check if the input is a math-related question using LLM classification.
+        
+        Fully dynamic - no hardcoded keywords. Handles edge cases like:
+        - Proof requests
+        - Theory/concept explanations
+        - Mathematical history
+        
+        Returns:
+            Dict with 'is_math': bool, 'reason': str
+        """
+        try:
+            prompt = f"""You are a guardrail classifier for a MATH TUTORING application.
+
+**User Input:**
+{text[:1000]}
+
+**Classify as MATH if the user is asking about ANY of these:**
+- Solving equations, problems, or calculations
+- Mathematical proofs or derivations
+- Mathematical concepts, theorems, or theory
+- Mathematical definitions or explanations
+- Geometry, algebra, calculus, probability, statistics, etc.
+- Numbers, formulas, functions, graphs
+- Mathematical reasoning or logic
+
+**Classify as NOT_MATH if the user is asking about:**
+- General conversation or greetings
+- Non-mathematical topics (history, entertainment, cooking, etc.)
+- Personal advice or opinions
+- Programming (unless it's about mathematical algorithms)
+- Other subjects unrelated to mathematics
+
+**Respond with EXACTLY one of these:**
+- MATH (if related to mathematics in any way)
+- NOT_MATH (if clearly unrelated to mathematics)
+"""
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
+            answer = response.text.strip().upper()
+            
+            is_math = "MATH" in answer and "NOT_MATH" not in answer
+            return {
+                "is_math": is_math,
+                "reason": answer.replace("MATH", "").replace("_", " ").strip() or ("Mathematics-related" if is_math else "Not mathematics-related")
+            }
+        except Exception as e:
+            # On error, allow through (fail open)
+            return {"is_math": True, "reason": f"Classification failed ({e}), allowing through"}
 
 
 if __name__ == "__main__":

@@ -47,12 +47,31 @@ class EpisodicMemory(KBEmbedder):
         self.index = faiss.IndexFlatL2(self.dimension)
         self.metadata = []
         
+    def add_feedback(self, problem: str, wrong_answer: str, correct_answer: str, explanation: str, session_id: str):
+        """
+        Store feedback for self-learning in a structured, retrieval-friendly format.
+        """
+        if not correct_answer.strip():
+            return
+
+        # Structured format optimized for LLM "Lesson Learned" context
+        feedback_text = (
+            f"[FEEDBACK ENTRY]\n"
+            f"Problem Context: {problem}\n"
+            f"Mistake Made: {wrong_answer}\n"
+            f"Correction: {correct_answer}\n"
+            f"Key Lesson: {explanation}"
+        )
+        
+        # Store with "feedback" role so it can be filtered/weighted differently if needed
+        self.add_interaction("feedback", feedback_text, session_id)
+
     def add_interaction(self, role: str, content: str, session_id: str):
         """
         Add a single interaction (User or Assistant message) to memory.
         
         Args:
-            role: "user" or "assistant"
+            role: "user", "assistant", or "feedback"
             content: The text content
             session_id: Current session identifier
         """

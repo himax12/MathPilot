@@ -102,33 +102,45 @@ You are a friendly Math Mentor continuing a conversation.
         
     def solve(self, problem: str) -> Dict[str, str]:
         """
-        Generate SymPy code to solve a math problem.
+        Generate SymPy code to solve a math problem using two-tier RAG strategy.
+        
+        Strategy:
+        - High similarity (>=0.6): Use KB-guided prompt emphasizing knowledge base solutions
+        - Low similarity (<0.6): Use standard LLM-only prompt
         
         Args:
             problem: Natural language math problem
             
         Returns:
-            Dict with:
-                - 'code': Generated Python code
-                - 'reasoning': Model's thought process (if available)
-                - 'error': Error message if generation failed
+            Dict with 'code', 'reasoning', 'error', 'rag_context', 'solving_mode'
         """
-
         
-        # RAG Retrieval
-        rag_context = ""
+        # TWO-TIER RAG: Get context WITH similarity score
+        rag_result = {"context": "", "max_similarity": 0.0, "has_strong_match": False, "top_topic": ""}
         if self.rag.ready:
-            rag_context = self.rag.retrieve(problem)
+            rag_result = self.rag.retrieve_with_score(problem)
+        
+        rag_context = rag_result.get("context", "")
+        has_strong_match = rag_result.get("has_strong_match", False)
+        max_similarity = rag_result.get("max_similarity", 0.0)
+        top_topic = rag_result.get("top_topic", "")
 
         # Episodic Memory Retrieval (Self-Learning)
         memory_context = ""
         try:
-            # We look for similar past problems to see how we solved them
             memory_context = self.memory.search_memories(problem, top_k=2)
         except Exception:
             pass
 
-        prompt = self._build_prompt(problem, rag_context, memory_context)
+        # Choose prompt strategy based on RAG match quality
+        if has_strong_match and rag_context:
+            # HIGH SIMILARITY: KB-guided solving (trust the knowledge base)
+            solving_mode = f"KB-Guided ({top_topic}, {max_similarity:.0%} match)"
+            prompt = self._build_kb_guided_prompt(problem, rag_context, memory_context)
+        else:
+            # LOW SIMILARITY: Standard LLM-only solving
+            solving_mode = f"LLM-Only (best KB match: {max_similarity:.0%})"
+            prompt = self._build_prompt(problem, rag_context, memory_context)
         
         try:
             response = self.client.models.generate_content(
@@ -141,24 +153,52 @@ You are a friendly Math Mentor continuing a conversation.
                 "code": code,
                 "reasoning": response.text.split("```python")[0].strip() if "```python" in response.text else "",
                 "error": None,
-                "rag_context": rag_context
+                "rag_context": rag_context,
+                "solving_mode": solving_mode
             }
         except Exception as e:
             return {
                 "code": None,
                 "reasoning": None,
-                "error": str(e)
+                "error": str(e),
+                "solving_mode": solving_mode
             }
     
-            return f"""You are a mathematical tutor. Solve this problem step by step.
+    def _build_kb_guided_prompt(self, problem: str, rag_context: str, memory_context: str = "") -> str:
+        """
+        Build prompt for KB-guided solving (high similarity match).
+        
+        Instead of injecting raw KB content (which can confuse code generation),
+        we tell the LLM that a matching topic was found and let it use its training.
+        """
+        # Extract just the topic names from RAG context for guidance
+        topic_hint = ""
+        if "Source 1:" in rag_context:
+            # Extract topic from first source header
+            import re
+            match = re.search(r"Source \d+:\s*([^\(]+)", rag_context)
+            if match:
+                topic_hint = match.group(1).strip()
+        
+        prompt = f"""You are a Math Tutor. Solve this problem using SymPy.
 
-**Problem**: {problem_stmt}
-**Question**: {question}
-**Given**: {given_str if given_str else "See problem"}
-**Approach**: {approach if approach else "Determine best method"}
+**TOPIC HINT:** This problem is related to: {topic_hint if topic_hint else "mathematics"}
 
-Provide: INTUITION, SOLUTION STEPS, CODE (with `answer = ...`), EXPLANATION.
+**PROBLEM:**
+{problem}
+
+**INSTRUCTIONS:**
+1. Write Python code using SymPy to solve this problem.
+2. Store the final answer in a variable named `answer`.
+3. Use appropriate SymPy functions (simplify, solve, integrate, etc.).
+4. The code should be complete and executable.
+
+**Output ONLY the Python code inside ```python``` tags.**
 """
+        if memory_context:
+            prompt += f"\n\n**Past Experience:**\n{memory_context}"
+        
+        return prompt
     
     
     def solve_structured(self, problem: str, context: Optional[Dict] = None) -> Optional[MathDeck]:

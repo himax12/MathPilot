@@ -1,0 +1,28 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv
+venv/
+ENV/
+env/
+
+# Environment variables (Critical security!)
+.env
+
+# Local Database (Don't deploy your test chats!)
+math_mentor.db
+*.sqlite
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml

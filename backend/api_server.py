@@ -362,6 +362,18 @@ async def new_session():
     return {"status": "new_session", "session_id": orchestrator.solver.memory.session_id}
 
 
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a specific session."""
+    if not orchestrator:
+         raise HTTPException(status_code=503, detail="Orchestrator not initialized")
+    
+    success = orchestrator.solver.memory.delete_session(session_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session not found or could not be deleted")
+    return {"status": "deleted", "session_id": session_id}
+
+
 # ===== Run Server =====
 
 if __name__ == "__main__":

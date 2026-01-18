@@ -532,3 +532,96 @@ class DeckGenerator:
         
         webbrowser.open(f'file://{temp_path}')
         return temp_path
+
+    def render_context(self, context_str: str) -> str:
+        """
+        Render RAG context as structured HTML carousel.
+        
+        Args:
+            context_str: Raw context string, typically formatted as:
+                         "--- Source 1: topic > subtopic (Relevance: X%) ---\\n...content..."
+                         
+        Returns:
+            HTML string of the context deck
+        """
+        import markdown
+        
+        sources = []
+        
+        # Split by source delimiter (handles both Frequency and Relevance patterns)
+        source_pattern = r"---\s*Source\s*(\d+):\s*(.+?)\s*\((?:Frequency|Relevance):\s*[\d.%]+\)\s*---"
+        
+        # Find all source headers and their positions
+        matches = list(re.finditer(source_pattern, context_str))
+        
+        for idx, match in enumerate(matches):
+            source_num = match.group(1)
+            title = match.group(2).strip()
+            
+            # Get content between this header and the next (or end of string)
+            start_pos = match.end()
+            end_pos = matches[idx + 1].start() if idx + 1 < len(matches) else len(context_str)
+            content = context_str[start_pos:end_pos].strip()
+            
+            # Strip YAML frontmatter (between --- and ---)
+            if content.startswith("---"):
+                # Find the closing ---
+                frontmatter_end = content.find("---", 3)
+                if frontmatter_end != -1:
+                    # Skip past the closing --- and any newlines
+                    content = content[frontmatter_end + 3:].strip()
+            
+            # Skip the header line if it starts with "# " (it's part of the doc)
+            lines = content.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                # Skip metadata-like lines
+                if line.strip().startswith('chapter:') or line.strip().startswith('topic:'):
+                    continue
+                if line.strip().startswith('jee_frequency:') or line.strip().startswith('years_appeared:'):
+                    continue
+                if line.strip().startswith('question_count:') or line.strip().startswith('difficulty:'):
+                    continue
+                cleaned_lines.append(line)
+            
+            content = '\n'.join(cleaned_lines).strip()
+            
+            # Convert markdown to HTML
+            try:
+                html_content = markdown.markdown(content, extensions=['extra', 'nl2br'])
+            except Exception:
+                html_content = self._format_content(content)
+            
+            sources.append({
+                "title": title,
+                "content": html_content
+            })
+        
+        # Fallback if no sources parsed (single block of text)
+        if not sources and context_str.strip():
+            # Strip everything before the main content
+            display_content = context_str.strip()
+            
+            # Remove YAML frontmatter
+            if "---" in display_content:
+                parts = display_content.split("---")
+                if len(parts) >= 3:
+                    display_content = "---".join(parts[2:]).strip()
+            
+            try:
+                html_content = markdown.markdown(display_content, extensions=['extra', 'nl2br'])
+            except Exception:
+                html_content = self._format_content(display_content)
+            
+            sources.append({
+                "title": "Retrieved Knowledge",
+                "content": html_content
+            })
+        
+        # Render template
+        try:
+            template = self.jinja_env.get_template("context_deck.html")
+            return template.render(sources=sources, source_count=len(sources))
+        except Exception as e:
+            # Fallback: simple HTML
+            return f"<div style='background:#1a1a2e;color:#fff;padding:1rem;'><pre>{context_str}</pre></div>"

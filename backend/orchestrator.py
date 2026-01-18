@@ -34,6 +34,7 @@ from agents.router import RouterAgent
 from agents.solver import SolverAgent
 from agents.verifier import VerifierAgent
 from schemas import ParsedProblem, RouteDecision, Solution, Verification
+from memory import SolutionState
 
 @dataclass
 class Attempt:
@@ -134,6 +135,17 @@ class Orchestrator:
         ctx = PipelineContext(raw_input=user_input)
         events = []  # Log of what happened (for UI)
         
+        # 0. GUARDRAIL: Check if input is math-related
+        guard_result = self.parser.is_math_related(user_input)
+        if not guard_result.get("is_math", True):
+            events.append(f"🚫 Guardrail: {guard_result.get('reason', 'Not math-related')}")
+            return {
+                "response": "I'm a **Math Mentor** specialized in solving mathematical problems. I can help you with:\n\n- Algebra, Calculus, Geometry\n- Probability & Statistics\n- Proofs and Theorems\n- Mathematical Concepts\n\n**Please ask a math-related question!** 📐",
+                "events": events,
+                "status": "guardrail_rejected"
+            }
+        events.append("✅ Guardrail passed: Math-related query")
+        
         # 1. Parse
         events.append("Parsing problem...")
         parsed_dict = self.parser.parse(user_input)
@@ -168,12 +180,17 @@ class Orchestrator:
             
             solution = self.solver.solve(problem_for_solver)
             
-            # Record RAG context if it's the first attempt
-            if i == 0 and solution.get('rag_context'):
-                ctx.rag_context = solution['rag_context']
-                # Create a concise preview for the UI
-                preview = solution['rag_context'].split('\n')[0][:80] + "..."
-                events.append(f"📚 RAG Retrieved: {preview}")
+            # Record solving mode and RAG context if it's the first attempt
+            if i == 0:
+                # Show solving mode in events
+                solving_mode = solution.get('solving_mode', 'Unknown')
+                events.append(f"🧠 Solving Mode: {solving_mode}")
+                
+                if solution.get('rag_context'):
+                    ctx.rag_context = solution['rag_context']
+                    # Create a concise preview for the UI
+                    preview = solution['rag_context'].split('\n')[0][:80] + "..."
+                    events.append(f"📚 RAG Retrieved: {preview}")
 
             if solution['error']:
                 events.append(f"Solver Error: {solution['error']}")
@@ -272,9 +289,6 @@ class Orchestrator:
                 msg += f"{reasoning}\n\n**Possible Answer:** {last.solution.get('answer', 'Unknown')}\n"
                 msg += f"\n*Issues found:* {last.verification.issues}"
         
-        # Save solution to memory
-        self.solver.memory.add_assistant_message(msg)
-        
         # Generator Visual Deck (If verified)
         deck = None
         if ctx.status == "verified" and ctx.final_solution:
@@ -286,12 +300,37 @@ class Orchestrator:
                 )
             except Exception as e:
                 events.append(f"Visual generation failed: {e}")
+        
+        # Build SolutionState from PipelineContext (structured storage)
+        last_attempt = ctx.attempts[-1] if ctx.attempts else None
+        
+        # Calculate confidence first (needed for SolutionState)
+        final_confidence = 0.0
+        if last_attempt and last_attempt.verification:
+            final_confidence = last_attempt.verification.confidence
+        
+        solution_state = SolutionState(
+            rag_context=ctx.rag_context if ctx.rag_context else None,
+            solving_mode=events[3] if len(events) > 3 and "Solving Mode" in events[3] else None,  # Extract from events
+            code=ctx.final_solution.get('code') if ctx.final_solution else (last_attempt.solution.get('code') if last_attempt else None),
+            reasoning=ctx.final_solution.get('reasoning') if ctx.final_solution else (last_attempt.solution.get('reasoning') if last_attempt else None),
+            answer=str(ctx.final_solution.get('answer')) if ctx.final_solution else (str(last_attempt.solution.get('answer')) if last_attempt else None),
+            is_verified=(ctx.status == "verified"),
+            confidence=final_confidence,
+            verification_issues=last_attempt.verification.issues if last_attempt and last_attempt.verification else [],
+            reflexion_attempts=len(ctx.attempts)
+        )
+        
+        # Save solution to memory WITH deck AND solution_state
+        self.solver.memory.add_assistant_message(msg, deck, solution_state)
 
         return {
             "response": msg,
             "events": events,
             "context": ctx,
-            "deck": deck
+            "deck": deck,
+            "confidence": final_confidence,
+            "solution_state": solution_state
         }
 
     def _format_history(self, attempts: List[Attempt]) -> str:
@@ -305,9 +344,9 @@ class Orchestrator:
         """Facade: Add user message to conversation memory."""
         self.solver.memory.add_user_message(content)
     
-    def add_assistant_message(self, content: str, deck=None):
+    def add_assistant_message(self, content: str, deck=None, solution_state=None):
         """Facade: Add assistant message to conversation memory."""
-        self.solver.memory.add_assistant_message(content, deck)
+        self.solver.memory.add_assistant_message(content, deck, solution_state)
     
     def restore_session(self) -> bool:
         """Facade: Restore last conversation session."""

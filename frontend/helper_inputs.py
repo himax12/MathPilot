@@ -1,11 +1,6 @@
 import streamlit as st
 from PIL import Image
 import io
-import sys
-import os
-
-# Add backend to path to ensure imports work
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 def handle_image_input():
     """Handle image upload and processing."""
@@ -18,13 +13,13 @@ def handle_image_input():
     if uploaded_file:
         # Display image
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
         
         # Initialize OCR if needed
         if st.session_state.ocr is None:
             try:
                 with st.spinner("🔧 Initializing OCR..."):
-                    from input.ocr import MathOCR
+                    from backend.input.ocr import MathOCR
                     st.session_state.ocr = MathOCR()
             except ValueError as e:
                 st.error(f"❌ Configuration Error: {e}")
@@ -97,7 +92,7 @@ def handle_audio_input():
     # Initialize ASR
     if 'asr' not in st.session_state or st.session_state.asr is None:
         try:
-            from input.asr import MathASR
+            from backend.input.asr import MathASR
             with st.spinner("🔧 Initializing Audio Engine..."):
                 st.session_state.asr = MathASR()
         except ImportError:
@@ -130,7 +125,7 @@ def handle_audio_input():
                     st.info(f"Transcript: {raw_text}")
                     
                     # Normalize
-                    from input.normalizer import MathNormalizer
+                    from backend.input.normalizer import MathNormalizer
                     normalized_text = MathNormalizer.normalize(raw_text)
                     
                     st.markdown("**Normalized Math:**")

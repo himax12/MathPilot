@@ -1,13 +1,8 @@
 """
 Test script for Orchestrator (Reflexion Pipeline).
 """
-import sys
-import os
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from orchestrator import Orchestrator
+from backend.orchestrator import Orchestrator
 
 def test_pipeline():
     print("Initializing Orchestrator (Reflexion Architecture)...")

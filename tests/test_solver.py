@@ -3,14 +3,8 @@ Test script for Math Mentor MVP
 Tests both text and image inputs with sample problems
 """
 
-import sys
-import os
-
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from solver import SolverAgent
-from executor import Executor
+from backend.agents.solver import SolverAgent
+from backend.executor import Executor
 
 
 def test_text_input():

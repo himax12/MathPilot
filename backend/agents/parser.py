@@ -6,17 +6,8 @@ Bridges the gap between OCR (raw text) and Solver (code generation).
 from google import genai
 from typing import Dict
 
-import sys
-import os
-
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from config import config
-from agents.base import BaseAgent
+from backend.config import config
+from backend.agents.base import BaseAgent
 
 
 class ParserAgent(BaseAgent):

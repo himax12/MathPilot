@@ -14,10 +14,7 @@ matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
 
-try:
-    from .config import config
-except ImportError:
-    from config import config
+from backend.config import config
 
 
 class TimeoutException(Exception):
@@ -193,22 +190,28 @@ class Executor:
         if answer is None:
             return "None"
         
-        # Handle lists (e.g., multiple solutions)
-        if hasattr(answer, '__iter__') and not isinstance(answer, str):
+        # 1. Handle SymPy objects (Atomic)
+        # Check for 'simplify' method or direct sympy.Basic inheritance
+        if hasattr(answer, 'simplify') or isinstance(answer, sympy.Basic):
+            try:
+                simplified = answer.simplify()
+                return f"${sympy.latex(simplified)}$"
+            except:
+                return str(answer)
+
+        # 2. Handle Collections (List, Tuple, Set)
+        # STRICT check to avoid iterating iterables like Strings or SymPy objects (if missed above)
+        if isinstance(answer, (list, tuple, set)):
             try:
                 # Try to format each item
                 items = []
                 for item in answer:
-                    if hasattr(item, 'simplify'):
-                        # SymPy object - simplify first
-                        simplified = item.simplify()
-                        # Convert to LaTeX
-                        items.append(f"${sympy.latex(simplified)}$")
+                    if hasattr(item, 'simplify') or isinstance(item, sympy.Basic):
+                         items.append(f"${sympy.latex(item.simplify())}$")
                     else:
                         items.append(str(item))
                 return ", ".join(items)
             except:
-                # Fallback to string
                 return str(answer)
         
         # Single value

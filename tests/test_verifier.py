@@ -1,13 +1,8 @@
 """
 Test script for Verifier Agent.
 """
-import sys
-import os
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from agents.verifier import VerifierAgent
+from backend.agents.verifier import VerifierAgent
 
 def test_verifier():
     print("Testing Verifier Agent...")

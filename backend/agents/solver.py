@@ -6,36 +6,13 @@ Uses Gemini 2.0 Flash API with Program-of-Thoughts (PoT) pattern.
 from google import genai
 import re
 from typing import Dict, Optional
-import sys
-import os
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from config import config
-from deck_generator.models import MathDeck, MathSlide, VisualRequest
-from memory import ConversationMemory
-from knowledge import MathRAG
-from agents.base import BaseAgent
-
-# Import utilities
-try:
-    from utils.text_utils import extract_code_from_response
-except ImportError:
-    import re
-    def extract_code_from_response(response_text):
-        pattern = r"```python\s*(.*?)\s*```"
-        match = re.search(pattern, response_text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        pattern = r"```\s*(.*?)\s*```"
-        match = re.search(pattern, response_text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        return response_text.strip()
+from backend.config import config
+from backend.deck_generator.models import MathDeck, MathSlide, VisualRequest
+from backend.memory import ConversationMemory
+from backend.knowledge import MathRAG
+from backend.agents.base import BaseAgent
+from backend.utils.text_utils import extract_code_from_response
 
 
 class SolverAgent(BaseAgent):

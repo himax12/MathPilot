@@ -22,14 +22,17 @@ The application is structured as a pipeline of specialized agents coordinated by
 *   **ASR Engine**: Uses Gemini Audio models to transcribe spoken mathematical queries, converting natural speech into formal problem statements.
 
 ### 2. Cognitive Layer (The Agents)
-*   **Parser Agent**: Normalizes raw input into a structured schema, identifying variables, constraints, and specific questions. Flags ambiguous input for user clarification.
-*   **Router Agent**: Classifies intent to direct the workflow (e.g., distinguishing between a new calculus problem and a conversational follow-up).
-*   **Solver Agent**: The core reasoning engine. It does not output answers directly; instead, it generates distinct Python code blocks to solve the problem symbolically. It utilizes RAG (Retrieval Augmented Generation) to access a curated knowledge base of formulas and theorems.
-*   **Verifier Agent**: A "Judge" model that executes the Solver's code in a secure sandbox. It performs double-check validation (e.g., substituting the answer back into the original equation) to certify correctness.
+*   **Parser Agent**: Normalizes raw input into a structured schema, identifying variables, constraints, and specifically "what needs to be solved". Flags ambiguous input for user clarification.
+*   **Router Agent**: Classifies intent (e.g., Algebra, Probability, Calculus) to select the optimal solving strategy and filter the knowledge base.
+*   **Solver Agent**: The core reasoning engine. It adopts a "Program-of-Thought" approach, generating SymPy code to solve problems deterministically. It integrates RAG to access mathematical laws and theorems.
+*   **Verifier Agent**: A "Judge" model that validates solutions by:
+    1.  Numerical Substitution (plugging answers back into equations).
+    2.  Conceptual Sanity Checks (validating units, domains, and bounds).
+*   **Explainer (DeckGen + Solver)**: Rather than a redundant text summarizer, the system uses a specialized **Visual Deck Generator**. This component takes the Solver's logical trace and transforms it into a step-by-step visual presentation (HTML/CSS), acting as the "Tutor" that explains the *why* and *how* alongside the *what*.
 
 ### 3. Memory & Persistence
-*   **Vector Store (FAISS)**: Stores embeddings of past interactions for semantic retrieval.
-*   **Relational DB (SQLite)**: Logs full conversation history, user feedback, and verification states for auditability.
+*   **Vector Store (FAISS)**: Stores embeddings of past interactions.
+*   **Relational DB (SQLite)**: Logs full conversation history, user feedback, and verification states.
 
 ### System Diagram
 
@@ -39,6 +42,7 @@ flowchart TD
     User([User])
     UI[Frontend Interface]
     Orchestrator{Orchestrator}
+    DeckGen[Visual Explainer<br>(Deck Generator)]
     
     subgraph Perception ["Perception Layer"]
         OCR[OCR Engine]
@@ -53,7 +57,7 @@ flowchart TD
     
     subgraph Memory ["Memory System"]
         RAG[(Knowledge Base)]
-        History[(Episodic DB)]
+        History[(Episodic Memory)]
     end
     
     %% Edges
@@ -64,17 +68,21 @@ flowchart TD
     OCR --> Orchestrator
     ASR --> Orchestrator
     
+    %% Core Loop
     Orchestrator --> Parser
-    Parser --> Orchestrator
+    Parser -->|Structured JSON| Orchestrator
     
-    Orchestrator --> Solver
-    Solver <--> RAG
-    Solver <--> History
+    Orchestrator -->|Problem + Context| Solver
+    Solver <-->|Retrieve Similar| History
+    Solver <-->|Retrieve Knowledge| RAG
     
-    Solver -->|Code| Verifier
-    Verifier -->|Validation| Orchestrator
+    Solver -->|Python Code| Verifier
+    Verifier -->|Substitution Check| Orchestrator
     
-    Orchestrator -->|Verified Solution| UI
+    Orchestrator -.->|Reflexion Retry| Solver
+    
+    Orchestrator -->|Verified Trace| DeckGen
+    DeckGen -->|Visual Deck| UI
 ```
 
 ## Technology Stack

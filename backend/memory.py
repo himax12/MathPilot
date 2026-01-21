@@ -7,11 +7,7 @@ from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 import time
 
-# Import MathDeck for structured deck storage
-try:
-    from deck_generator.models import MathDeck
-except ImportError:
-    MathDeck = None  # Fallback if models not available
+from backend.deck_generator.models import MathDeck
 
 
 class SolutionState(BaseModel):
@@ -100,11 +96,7 @@ from datetime import datetime
 import os
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "math_mentor.db")
 
-# Import Episodic Memory
-try:
-    from episodic_memory import EpisodicMemory
-except ImportError:
-    EpisodicMemory = None
+from backend.episodic_memory import EpisodicMemory
 
 
 class ConversationMemory(BaseModel):

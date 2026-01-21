@@ -6,18 +6,10 @@ from google import genai
 from typing import Dict, List, Optional, Any
 import json
 import re
-import sys
-import os
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from agents.base import BaseAgent
-from schemas import RouteDecision
-from config import config
+from backend.agents.base import BaseAgent
+from backend.schemas import RouteDecision
+from backend.config import config
 
 class RouterAgent(BaseAgent):
     """

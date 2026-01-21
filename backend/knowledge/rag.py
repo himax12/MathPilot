@@ -3,22 +3,10 @@ MathRAG - Runtime wrapper for Knowledge Base retrieval.
 Adapts the build-time KBEmbedder for use in the runtime SolverAgent.
 """
 
-import sys
 import os
 from typing import List, Dict, Any, Optional
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-try:
-    from kb_builder.embedder import KBEmbedder
-    RAG_AVAILABLE = True
-except ImportError:
-    RAG_AVAILABLE = False
-    print("Warning: Could not import KBEmbedder. RAG will be disabled.")
+from backend.kb_builder.embedder import KBEmbedder
 
 class MathRAG:
     """
@@ -34,8 +22,6 @@ class MathRAG:
             index_dir: Override path to index directory. Defaults to backend/knowledge/index.
         """
         self.ready = False
-        if not RAG_AVAILABLE:
-            return
             
         try:
             self.embedder = KBEmbedder()

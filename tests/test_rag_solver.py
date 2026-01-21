@@ -2,13 +2,7 @@
 Test script for RAG-enabled Solver Agent.
 """
 
-import sys
-import os
-
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from agents.solver import SolverAgent
+from backend.agents.solver import SolverAgent
 
 def test_rag():
     print("Initializing Solver with RAG...")

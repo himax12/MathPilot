@@ -4,19 +4,9 @@ Conversational interface with SOTA Agentic Orchestrator.
 """
 
 import streamlit as st
-import sys
-import os
 
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-# Import agents
-try:
-    from orchestrator import Orchestrator
-    from deck_generator import DeckGenerator
-except ImportError as e:
-    st.error(f"Import error: {e}")
-    st.stop()
+from backend.orchestrator import Orchestrator
+from backend.deck_generator import DeckGenerator
 
 
 

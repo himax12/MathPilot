@@ -10,31 +10,13 @@ from dataclasses import dataclass, field
 import json
 import re
 
-# Import text processing utilities
-try:
-    from utils.text_utils import strip_code_from_reasoning
-except ImportError:
-    # Fallback for standalone execution
-    import re
-    def strip_code_from_reasoning(reasoning):
-        if not isinstance(reasoning, str) or reasoning is None:
-            return ''
-        reasoning = re.sub(r'\*\*Internal Code\*\*.*', '', reasoning, flags=re.DOTALL | re.IGNORECASE)
-        reasoning = re.sub(r'```[^`]*```', '', reasoning, flags=re.DOTALL)
-        return reasoning.strip()
-
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from agents.parser import ParserAgent
-from agents.router import RouterAgent
-from agents.solver import SolverAgent
-from agents.verifier import VerifierAgent
-from schemas import ParsedProblem, RouteDecision, Solution, Verification
-from memory import SolutionState
+from backend.utils.text_utils import strip_code_from_reasoning
+from backend.agents.parser import ParserAgent
+from backend.agents.router import RouterAgent
+from backend.agents.solver import SolverAgent
+from backend.agents.verifier import VerifierAgent
+from backend.schemas import ParsedProblem, RouteDecision, Solution, Verification
+from backend.memory import SolutionState
 
 @dataclass
 class Attempt:

@@ -10,16 +10,7 @@ from typing import Dict, Optional
 from PIL import Image
 import io
 
-import sys
-import os
-
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from config import config
+from backend.config import config
 
 
 class MathOCR:

@@ -3,14 +3,8 @@ Test script for Router Agent.
 Verifies that the router correctly classifies different types of math problems.
 """
 
-import sys
-import os
-
-# Add backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-from agents.router import RouterAgent
-from config import config
+from backend.agents.router import RouterAgent
+from backend.config import config
 
 def test_router():
     print("Testing Router Agent...")

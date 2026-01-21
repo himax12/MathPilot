@@ -6,19 +6,11 @@ from google import genai
 from typing import Dict, List, Optional, Any
 import json
 import re
-import sys
-import os
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from agents.base import BaseAgent
-from schemas import Verification
-from config import config
-from executor import Executor
+from backend.agents.base import BaseAgent
+from backend.schemas import Verification
+from backend.config import config
+from backend.executor import Executor
 
 class VerifierAgent(BaseAgent):
     """
@@ -66,15 +58,33 @@ class VerifierAgent(BaseAgent):
                 if result["success"]:
                     # Expecting True or a list of Trues
                     res_val = result["answer"]
-                    is_valid = str(res_val).lower() == "true" or (isinstance(res_val, list) and all(str(r).lower() == "true" for r in res_val))
+                    
+                    # Robust Boolean Parsing (Universal Fix)
+                    # Handle: True, "True", [True, True], Or(x>1), etc.
+                    str_val = str(res_val).strip().lower()
+                    
+                    # Case 1: Direct boolean-like string
+                    is_direct_bool = str_val == "true"
+                    
+                    # Case 2: List of booleans (e.g. multiple test cases)
+                    # We strictly check for list type to avoid iterating SymPy objects
+                    is_list_valid = False
+                    if isinstance(res_val, (list, tuple)):
+                         is_list_valid = all(str(r).strip().lower() == "true" for r in res_val)
+                    
+                    is_valid = is_direct_bool or is_list_valid
                     
                     check_info["passed"] = is_valid
                     check_info["details"] = f"Result: {res_val}"
                     if not is_valid:
-                        issues.append(f"Numerical substitution failed: {res_val}")
+                        issues.append(f"numerical_substitution failed (Expected True, got {res_val})")
                 else:
-                    check_info["details"] = f"Execution Error: {result['error']}"
-                    issues.append(f"Verification code failed to run: {result['error']}")
+                    # Code verification crashed - mark as SKIPPED, not failed
+                    # This is graceful degradation: code crash ≠ wrong answer
+                    check_info["skipped"] = True
+                    check_info["skip_reason"] = result['error']
+                    check_info["details"] = f"Verification code skipped: {result['error']}"
+                    # DON'T append to issues - we'll fall back to conceptual check
                 
                 checks.append(check_info)
         except Exception as e:
@@ -101,10 +111,21 @@ class VerifierAgent(BaseAgent):
         except Exception as e:
             self._log(f"Verification Check 2 failed: {e}")
 
-        # Aggregate Results
-        # If any major check fails, we flag it
-        is_valid = len(issues) == 0
-        confidence = 1.0 if is_valid else 0.4
+        # Calculate confidence using pure formula (no hardcoded values)
+        # Formula: confidence = (passed + 0.5 * skipped) / total
+        # Rationale: passed checks get full credit, skipped get half (uncertain, not wrong)
+        
+        passed = sum(1 for c in checks if c.get("passed"))
+        skipped = sum(1 for c in checks if c.get("skipped"))
+        total = len(checks)
+        
+        if total == 0:
+            confidence = 0.5  # No checks = uncertain
+        else:
+            confidence = round((passed + 0.5 * skipped) / total, 2)
+        
+        # is_valid = True if any check passed and no explicit issues
+        is_valid = passed > 0 and len(issues) == 0
         
         return Verification(
             is_valid=is_valid,

@@ -6,16 +6,8 @@ Uses Google Cloud Speech-to-Text V2 (Chirp 2) for state-of-the-art accuracy.
 from google.cloud.speech_v2 import SpeechClient
 from google.cloud.speech_v2.types import cloud_speech
 from typing import Dict, Optional
-import sys
-import os
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from config import config
+from backend.config import config
 
 class MathASR:
     """

@@ -1,10 +1,6 @@
 import sys
-import os
 import unittest
 from unittest.mock import MagicMock
-
-# Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
     from backend.deck_generator.models import MathDeck, MathSlide, VisualRequest

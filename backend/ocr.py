@@ -11,10 +11,7 @@ from PIL import Image
 import io
 import time
 
-try:
-    from .config import config
-except ImportError:
-    from config import config
+from backend.config import config
 
 
 class MathOCR:

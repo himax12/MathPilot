@@ -3,22 +3,12 @@ Episodic Memory - FAISS-based semantic search for conversation history.
 Inherits from KBEmbedder to reuse Gemini embedding logic and FAISS management.
 """
 
-import sys
 import os
 from typing import Dict, Any, List
 
-# Ensure backend definitions are accessible
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
-try:
-    from kb_builder.embedder import KBEmbedder
-    import faiss
-    import numpy as np
-except ImportError:
-    KBEmbedder = object # Dummy
-    print("Warning: Dependencies missing for EpisodicMemory")
+from backend.kb_builder.embedder import KBEmbedder
+import faiss
+import numpy as np
 
 class EpisodicMemory(KBEmbedder):
     """

@@ -6,16 +6,8 @@ Uses Gemini to classify questions by domain, subtopic, and pattern.
 import json
 import asyncio
 from typing import Dict, List, Optional
-import sys
-import os
 
-# Ensure backend is importable
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from config import config
+from backend.config import config
 
 try:
     from google import genai

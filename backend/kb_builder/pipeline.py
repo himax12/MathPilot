@@ -8,19 +8,11 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
-import sys
-import os
 
-# Ensure backend is importable
-current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.dirname(current_dir)
-if backend_dir not in sys.path:
-    sys.path.append(backend_dir)
-
-from .sources.json_loader import PYQLoader
-from .classifier import QuestionClassifier
-from .aggregator import PatternAggregator
-from .doc_generator import DocGenerator
+from backend.kb_builder.sources.json_loader import PYQLoader
+from backend.kb_builder.classifier import QuestionClassifier
+from backend.kb_builder.aggregator import PatternAggregator
+from backend.kb_builder.doc_generator import DocGenerator
 
 
 class JEEKBPipeline:

@@ -190,16 +190,18 @@ STEP 2: TRANSCRIPTION
 - IF you saw options in Step 1, you MUST list them exactly as they appear.
 - Write equations in LaTeX.
 
-**OUTPUT FORMAT**:
-Just the final transcription. Do not output your "scanning" thought process, just the result. Ensure the OPTIONS are included at the bottom.
+**OUTPUT FORMAT (JSON ONLY)**:
+You must output a valid JSON object matching this structure exactly (no markdown formatting, no comments):
 
-**Example**:
-Calculate the area of the circle.
+{
+  "problem_text_full": "Complete problem statement including text, math, and options",
+  "given_values": ["value1", "value2"],
+  "question": "What is being asked",
+  "problem_type_hint": "algebra/calculus/etc",
+  "confidence": 0.95
+}
 
-A) 2pi
-B) 4pi
-C) pi
-D) 8pi
+Where `confidence` is a float from 0.0 to 1.0 indicating how confident you are in your transcription.
 """
         
         if raw_text:
@@ -209,54 +211,49 @@ D) 8pi
     
     def _parse_gemini_response(self, response_text: str) -> tuple:
         """
-        Parse Gemini's response.
+        Parse Gemini's response as JSON.
         """
+        import json
+        
         # Clean up any potential markdown code blocks wrapper
-        cleaned = response_text.replace("```markdown", "").replace("```", "").strip()
+        cleaned = response_text.replace("```json", "").replace("```markdown", "").replace("```", "").strip()
         
-        # Check if unclear
-        if "UNCLEAR" in cleaned:
-             return {
-                "problem_text_full": cleaned,
-                "needs_review": True
-            }, 0.0, True
+        try:
+            problem_data = json.loads(cleaned)
+            confidence = self._calculate_confidence_structured(problem_data)
+            needs_review = confidence < 0.7
+            return problem_data, confidence, needs_review
             
-        # Structure it simply for compatibility
-        problem_data = {
-            "problem_text_full": cleaned,
-            "given_values": [],
-            "question": "See problem text",
-            "options": [],
-            "problem_type_hint": "general"
-        }
-        
-        # Simple confidence heuristic
-        confidence = 0.8 if len(cleaned) > 10 else 0.4
-        needs_review = confidence < 0.6
-        
-        return problem_data, confidence, needs_review
+        except json.JSONDecodeError:
+            # Check if unclear
+            if "UNCLEAR" in cleaned:
+                 return {
+                    "problem_text_full": cleaned,
+                    "needs_review": True
+                }, 0.0, True
+                
+            # Fallback for plain text response
+            problem_data = {
+                "problem_text_full": cleaned,
+                "given_values": [],
+                "question": "See problem text",
+                "options": [],
+                "problem_type_hint": "general"
+            }
+            confidence = 0.5
+            needs_review = True
+            
+            return problem_data, confidence, needs_review
     
     def _calculate_confidence_structured(self, problem_data: dict) -> float:
         """Calculate confidence from structured problem data."""
-        confidence = 0.5  # Base
-        
-        # Has full problem text (+0.2)
-        if problem_data.get("problem_text_full") and len(problem_data["problem_text_full"]) > 20:
-            confidence += 0.2
-        
-        # Has given values (+0.1)
-        if problem_data.get("given_values"):
-            confidence += 0.1
-        
-        # Has clear question (+0.1)
-        if problem_data.get("question") and problem_data["question"] != "Unknown":
-            confidence += 0.1
-        
-        # Has problem type (+0.1)
-        if problem_data.get("problem_type_hint") and problem_data["problem_type_hint"] != "unknown":
-            confidence += 0.1
-        
-        return min(confidence, 1.0)
+        try:
+            if "confidence" in problem_data:
+                return float(problem_data["confidence"])
+        except (ValueError, TypeError):
+            pass
+            
+        return 0.5
     
     def _calculate_confidence(self, latex: str) -> float:
         """

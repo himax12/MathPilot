@@ -15,7 +15,8 @@ from backend.agents.parser import ParserAgent
 from backend.agents.router import RouterAgent
 from backend.agents.solver import SolverAgent
 from backend.agents.verifier import VerifierAgent
-from backend.schemas import ParsedProblem, RouteDecision, Solution, Verification
+from backend.agents.explainer import ExplainerAgent
+from backend.schemas import ParsedProblem, RouteDecision, Solution, Verification, Explanation
 from backend.memory import SolutionState
 
 @dataclass
@@ -43,50 +44,56 @@ class Orchestrator:
     Flow: Parser -> Router -> RAG -> Solver -> Verifier -> (Reflector Loop).
     """
     
-    def __init__(self, parser=None, router=None, solver=None, verifier=None, max_retries=3):
+    def __init__(self, parser=None, router=None, solver=None, verifier=None, explainer=None, max_retries=3):
         """
         Initialize Orchestrator with dependency injection support.
-        
-        Args:
-            parser: ParserAgent instance (or None to use default)
-            router: RouterAgent instance (or None to use default)
-            solver: SolverAgent instance (or None to use default)
-            verifier: VerifierAgent instance (or None to use default)
-            max_retries: Maximum reflexion attempts (default: 3)
+
+        Agents (5 total):
+            parser:   Extracts structured problem from raw input
+            router:   Classifies domain and strategy
+            solver:   Generates SymPy code (Program-of-Thoughts)
+            verifier: Validates solution via numerical substitution + LLM judge
+            explainer: Produces JEE-specific step-by-step explanation (5th Agent)
         """
         # Dependency Injection with sensible defaults
         self.parser = parser or ParserAgent()
         self.router = router or RouterAgent()
         self.solver = solver or SolverAgent()
         self.verifier = verifier or VerifierAgent()
+        self.explainer = explainer or ExplainerAgent()
         self.max_retries = max_retries
         
-    def run(self, user_input: str) -> Dict[str, Any]:
+    def run(self, user_input) -> Dict[str, Any]:
         """
         Run the full SOTA math solving pipeline.
         
         Args:
-            user_input: The math problem (text).
+            user_input: The math problem (text as string OR dictionary with 'latex' and 'problem_data').
             
         Returns:
             Dict containing final response, events, and debug info.
         """
+        # Extract displayably text if input is a dict
+        display_input = user_input.get("latex", "") if isinstance(user_input, dict) else str(user_input)
+        
         # 0. Check for Follow-up / Conversational Intent
         # We leverage the Solver's memory to detect context
-        self.solver.memory.add_user_message(user_input)
-        is_follow_up = self.solver.memory.is_follow_up(user_input)
+        self.solver.memory.add_user_message(display_input)
+        follow_up_result = self.parser.is_follow_up(display_input, self.solver.memory.get_context_window(3))
         
-        if is_follow_up:
-            response = self.solver._generate_follow_up_response(user_input)
-            self.solver.memory.add_assistant_message(response)
+        if follow_up_result.get("is_follow_up", False):
+            reason = follow_up_result.get("reason", "Detected follow-up question")
+            response = self.solver._generate_follow_up_response(display_input)
+            events = [reason, "Generated conversational response"]
+            self.solver.memory.add_assistant_message(response, events=events)
             return {
                 "response": response,
-                "events": ["Detected follow-up question", "Generated conversational response"],
+                "events": events,
                 "context": None
             }
 
         # Be sure to set this as the active problem for context
-        self.solver.memory.set_active_problem(user_input)
+        self.solver.memory.set_active_problem(display_input)
 
         # Auto-Title Generation
         # We check if title is missing (new session) and this is the first turn
@@ -104,7 +111,7 @@ class Orchestrator:
         if len(self.solver.memory.messages) == 1:
             try:
                 # Generate a short title
-                title_prompt = f"Generate a short, descriptive title (3-5 words) for a math session starting with: '{user_input}'. Return ONLY the title, no quotes."
+                title_prompt = f"Generate a short, descriptive title (3-5 words) for a math session starting with: '{display_input}'. Return ONLY the title, no quotes."
                 title = self.solver.client.models.generate_content(
                     model=self.solver.model_name,
                     contents=title_prompt
@@ -114,11 +121,11 @@ class Orchestrator:
             except Exception as e:
                 print(f"Title generation failed: {e}")
 
-        ctx = PipelineContext(raw_input=user_input)
+        ctx = PipelineContext(raw_input=display_input)
         events = []  # Log of what happened (for UI)
         
         # 0. GUARDRAIL: Check if input is math-related
-        guard_result = self.parser.is_math_related(user_input)
+        guard_result = self.parser.is_math_related(display_input)
         if not guard_result.get("is_math", True):
             events.append(f"🚫 Guardrail: {guard_result.get('reason', 'Not math-related')}")
             return {
@@ -138,6 +145,7 @@ class Orchestrator:
             topic=parsed_dict.get("domain", "unknown"),
             question=parsed_dict.get("question", ""),
             approach=parsed_dict.get("approach", ""),
+            features=parsed_dict.get("features", []),
             needs_clarification=parsed_dict.get("needs_clarification", False)
         )
         
@@ -158,9 +166,15 @@ class Orchestrator:
             
             if i > 0:
                 history = self._format_history(ctx.attempts)
-                problem_for_solver += f"\n\n[PREVIOUS ATTEMPTS FAILED]\nADJUST STRATEGY based on history:\n{history}"
+                last_error = ctx.attempts[-1].verification.issues[0] if ctx.attempts[-1].verification.issues else ""
+                error_hint = self._get_error_hint(last_error)
+                
+                problem_for_solver += f"\n\n### [PREVIOUS ATTEMPTS FAILED]\n{history}\n"
+                if error_hint:
+                    problem_for_solver += f"\n**HINT**: {error_hint}\n"
+                problem_for_solver += "\n**ACTION**: Review the failures above and generate NEW, corrected code. Avoid repeating the same mistakes."
             
-            solution = self.solver.solve(problem_for_solver)
+            solution = self.solver.solve(problem_for_solver, features=ctx.parsed.features)
             
             # Record solving mode and RAG context if it's the first attempt
             if i == 0:
@@ -221,6 +235,26 @@ class Orchestrator:
                 ctx.status = "verified"
                 events.append("✅ Verification Passed!")
                 ctx.attempts.append(attempt)
+
+                # D. Explain (5th Agent — JEE Tutor)
+                events.append("🎓 Generating JEE Tutor Explanation...")
+                try:
+                    ctx.explanation = self.explainer.explain(
+                        problem=ctx.parsed.problem_text,
+                        answer=str(attempt.solution.get("answer", "")),
+                        domain=ctx.parsed.topic,
+                        approach=ctx.parsed.approach,
+                        rag_context=ctx.rag_context,
+                        code=attempt.solution.get("code", ""),
+                    )
+                    if not ctx.explanation.error:
+                        events.append(f"🎓 JEE Tutor Explanation generated (ExplainerAgent) — Chapter: {ctx.explanation.chapter_tag} [{ctx.explanation.difficulty}]")
+                    else:
+                        events.append(f"⚠️ Explainer partial: {ctx.explanation.error}")
+                except Exception as _e:
+                    ctx.explanation = Explanation(error=str(_e))
+                    events.append(f"⚠️ Explainer failed: {_e}")
+
                 break
             else:
                 events.append(f"❌ Verification Failed: {verification.issues}")
@@ -250,18 +284,25 @@ class Orchestrator:
         
         # 5. Final Output Generation
         msg = ""
-        if ctx.status == "verified":
+        last = ctx.attempts[-1] if ctx.attempts else None
+        
+        # Check if we need Human in the Loop for verification
+        if ctx.status != "verified" and last and getattr(last.verification, 'needs_hitl', False):
+            ctx.status = "verification_hitl"
+            reasoning = last.solution.get('reasoning', 'No reasoning available')
+            reasoning = strip_code_from_reasoning(reasoning)
+            msg = f"### Verification Assistance Needed ⚠️\n\nI've produced an answer, but I am not completely sure if it is correct.\n\n{reasoning}\n\n**Calculated Answer:** {last.solution.get('answer', 'Unknown')}\n\n*Why I need help:* {', '.join(last.verification.issues)}\n\nPlease review and let me know if it's correct!"
+        elif ctx.status == "verified":
             # Strip the entire "Internal Code" section from reasoning
-            reasoning = strip_code_from_reasoning(ctx.final_solution.get('reasoning'))
+            reasoning = ctx.final_solution.get('reasoning')
+            reasoning = strip_code_from_reasoning(reasoning) if reasoning else "No reasoning available"
             
             msg = f"### Solution\n\n{reasoning}\n\n**Answer:** {ctx.final_solution['answer']}\n\n"
             if len(ctx.attempts) > 1:
                 msg += f"*Verified in {len(ctx.attempts)} attempts (Reflexion Active).*"
         else:
             msg = f"### Solution (Unverified)\n\nI struggled to verify the answer. Here is my best attempt:\n\n"
-            if ctx.attempts:
-                last = ctx.attempts[-1]
-                
+            if last:
                 # Strip code section from reasoning
                 reasoning = last.solution.get('reasoning', 'No reasoning available')
                 reasoning = strip_code_from_reasoning(reasoning)
@@ -303,8 +344,8 @@ class Orchestrator:
             reflexion_attempts=len(ctx.attempts)
         )
         
-        # Save solution to memory WITH deck AND solution_state
-        self.solver.memory.add_assistant_message(msg, deck, solution_state)
+        # Save solution to memory WITH deck AND solution_state and events
+        self.solver.memory.add_assistant_message(msg, deck, solution_state, events)
 
         return {
             "response": msg,
@@ -316,19 +357,50 @@ class Orchestrator:
         }
 
     def _format_history(self, attempts: List[Attempt]) -> str:
-        """Format reflexion history for display."""
-        if len(attempts) <= 1:
+        """Format detailed reflexion history for the LLM solver to learn from."""
+        if not attempts:
             return ""
-        return f"\n\n---\n**Reflexion History:**\n- {len(attempts)} attempts\n- Final solution verified ✓"
+        
+        history_parts = []
+        for att in attempts:
+            part = f"--- ATTEMPT {att.round + 1} ---\n"
+            part += f"CODE USED:\n```python\n{att.solution.get('code', '')}\n```\n"
+            if att.solution.get('answer'):
+                part += f"RESULT: {att.solution['answer']}\n"
+            if att.verification.issues:
+                part += f"ISSUES: {', '.join(att.verification.issues)}\n"
+            if att.reflection:
+                part += f"REFLECTION: {att.reflection}\n"
+            history_parts.append(part)
+        
+        return "\n".join(history_parts)
+
+    def _get_error_hint(self, error_msg: str) -> str:
+        """Map common technical errors to helpful SymPy hints."""
+        error_msg = str(error_msg).lower()
+        
+        if "'int' object has no attribute 'subs'" in error_msg:
+            return "You are mixing Python integers with SymPy symbols. Ensure you are using SymPy's 'Piecewise', 'Integer', or 'S()' if you need to call '.subs()' on a value. Keep expressions symbolic as long as possible."
+        
+        if "can't multiply sequence by non-int of type" in error_msg or "list indices must be integers" in error_msg:
+            return "SymPy 'solve' often returns a list. Access the solution element (e.g., sol[0]) before using it in calculations."
+            
+        if "name 'x' is not defined" in error_msg:
+            return "Ensure all variables are defined as symbols: x = symbols('x')"
+            
+        if "timed out" in error_msg:
+            return "The solution is too complex for symbolic integration. Try using 'nsolve' for a numerical approximation or simplify the problem before solving."
+
+        return ""
     
     # Facade methods for cleaner frontend access
     def add_user_message(self, content: str):
         """Facade: Add user message to conversation memory."""
         self.solver.memory.add_user_message(content)
     
-    def add_assistant_message(self, content: str, deck=None, solution_state=None):
+    def add_assistant_message(self, content: str, deck=None, solution_state=None, events=None):
         """Facade: Add assistant message to conversation memory."""
-        self.solver.memory.add_assistant_message(content, deck, solution_state)
+        self.solver.memory.add_assistant_message(content, deck, solution_state, events)
     
     def restore_session(self) -> bool:
         """Facade: Restore last conversation session."""

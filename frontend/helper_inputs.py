@@ -19,7 +19,7 @@ def handle_image_input():
         if st.session_state.ocr is None:
             try:
                 with st.spinner("🔧 Initializing OCR..."):
-                    from backend.input.ocr import MathOCR
+                    from backend.ocr import MathOCR
                     st.session_state.ocr = MathOCR()
             except ValueError as e:
                 st.error(f"❌ Configuration Error: {e}")
@@ -81,7 +81,10 @@ def handle_image_input():
             height=100
         )
         
-        return edited_latex
+        return {
+            "latex": edited_latex,
+            "problem_data": ocr_result.get("problem_data", {})
+        }
     return None
 
 def handle_audio_input():
@@ -118,24 +121,43 @@ def handle_audio_input():
                 if result['error']:
                     st.error(f"ASR Error: {result['error']}")
                     st.session_state.transcribed_text = None
+                    st.session_state.asr_confidence = 0.0
                 else:
                     raw_text = result['text']
+                    confidence = result.get('confidence', 0.0)
                     
                     st.success("Analysis Complete!")
-                    st.info(f"Transcript: {raw_text}")
                     
                     # Normalize
                     from backend.input.normalizer import MathNormalizer
                     normalized_text = MathNormalizer.normalize(raw_text)
                     
-                    st.markdown("**Normalized Math:**")
-                    st.code(normalized_text)
-                    
                     # Store in session state for persistence
                     st.session_state.transcribed_text = normalized_text
+                    st.session_state.asr_confidence = confidence
         
-        # Return the persisted transcribed text
-        return st.session_state.get('transcribed_text')
+        # Display the editable text area if we have transcription
+        if st.session_state.get('transcribed_text'):
+            conf = st.session_state.get('asr_confidence', 0.0)
+            
+            # Confidence warning
+            if conf > 0 and conf < 0.85:
+                st.warning(f"⚠️ Low confidence ({conf:.0%}). Please verify the transcription.")
+            elif conf >= 0.85:
+                st.success(f"✅ High confidence ({conf:.0%}).")
+                
+            edited_text = st.text_area(
+                "Verify & Edit Transcription:",
+                value=st.session_state.transcribed_text,
+                height=100
+            )
+            
+            # Update the stored text with any edits so it persists
+            st.session_state.transcribed_text = edited_text
+            
+            return edited_text
+            
+        return None
     
     return None
 

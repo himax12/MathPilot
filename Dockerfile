@@ -30,10 +30,11 @@ COPY . .
 
 # Expose the port
 ENV PORT=8080
+ENV PYTHONPATH=/app
 EXPOSE 8080
 
 # Healthcheck
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
 
 # Launch the app
-CMD ["streamlit", "run", "frontend/app.py", "--server.port", "8080", "--server.address", "0.0.0.0"]
+CMD ["python", "-m", "streamlit", "run", "frontend/app.py", "--server.port", "8080", "--server.address", "0.0.0.0"]

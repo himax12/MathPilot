@@ -60,8 +60,7 @@ google-generativeai
 python-dotenv
 google-cloud-vision
 matplotlib
-numpy==3.12.0
-    # via math-mentor
+
 google-generativeai==0.8.6
     # via math-mentor
 googleapis-common-protos==1.72.0

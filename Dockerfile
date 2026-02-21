@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 # Install system dependencies for OpenCV and Audio
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     portaudio19-dev \
     python3-dev \
@@ -11,14 +11,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv compiler tool
+COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
+
 # Set working directory
 WORKDIR /app
 
-# Copy requirements
-COPY requirements.txt .
+# Copy dependency files
+# Note: we use pyproject.toml and uv.lock as the source of truth if available, otherwise requirements.txt
+COPY requirements.txt pyproject.toml uv.lock* ./
 
-# Install dependencies using standard pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies using uv
+# --system ensures it installs to the container's global python env
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # Copy the rest of the application
 COPY . .

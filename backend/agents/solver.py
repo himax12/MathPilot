@@ -5,14 +5,14 @@ Uses Gemini 2.0 Flash API with Program-of-Thoughts (PoT) pattern.
 
 from google import genai
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from backend.config import config
 from backend.deck_generator.models import MathDeck, MathSlide, VisualRequest
 from backend.memory import ConversationMemory
 from backend.knowledge import MathRAG
 from backend.agents.base import BaseAgent
-from backend.utils.text_utils import extract_code_from_response
+from backend.utils.text_utils import extract_code_from_response, strip_code_from_reasoning
 
 
 class SolverAgent(BaseAgent):
@@ -77,20 +77,19 @@ You are a friendly Math Mentor continuing a conversation.
         """Clear conversation history for a fresh start."""
         self.memory.clear()
         
-    def solve(self, problem: str) -> Dict[str, str]:
+    def solve(self, problem: str, features: List[str] = None) -> Dict[str, str]:
         """
         Generate SymPy code to solve a math problem using two-tier RAG strategy.
         
-        Strategy:
-        - High similarity (>=0.6): Use KB-guided prompt emphasizing knowledge base solutions
-        - Low similarity (<0.6): Use standard LLM-only prompt
-        
         Args:
             problem: Natural language math problem
+            features: List of detected math structures (from Parser)
             
         Returns:
             Dict with 'code', 'reasoning', 'error', 'rag_context', 'solving_mode'
         """
+        features = features or []
+        dynamic_hints = self._get_feature_hints(features)
         
         # TWO-TIER RAG: Get context WITH similarity score
         rag_result = {"context": "", "max_similarity": 0.0, "has_strong_match": False, "top_topic": ""}
@@ -113,11 +112,11 @@ You are a friendly Math Mentor continuing a conversation.
         if has_strong_match and rag_context:
             # HIGH SIMILARITY: KB-guided solving (trust the knowledge base)
             solving_mode = f"KB-Guided ({top_topic}, {max_similarity:.0%} match)"
-            prompt = self._build_kb_guided_prompt(problem, rag_context, memory_context)
+            prompt = self._build_kb_guided_prompt(problem, rag_context, memory_context, dynamic_hints)
         else:
             # LOW SIMILARITY: Standard LLM-only solving
             solving_mode = f"LLM-Only (best KB match: {max_similarity:.0%})"
-            prompt = self._build_prompt(problem, rag_context, memory_context)
+            prompt = self._build_prompt(problem, rag_context, memory_context, dynamic_hints)
         
         try:
             response = self.client.models.generate_content(
@@ -128,7 +127,7 @@ You are a friendly Math Mentor continuing a conversation.
             
             return {
                 "code": code,
-                "reasoning": response.text.split("```python")[0].strip() if "```python" in response.text else "",
+                "reasoning": strip_code_from_reasoning(response.text),
                 "error": None,
                 "rag_context": rag_context,
                 "solving_mode": solving_mode
@@ -141,12 +140,13 @@ You are a friendly Math Mentor continuing a conversation.
                 "solving_mode": solving_mode
             }
     
-    def _build_kb_guided_prompt(self, problem: str, rag_context: str, memory_context: str = "") -> str:
+    def _build_kb_guided_prompt(self, problem: str, rag_context: str, memory_context: str = "", dynamic_hints: str = "") -> str:
         """
         Build prompt for KB-guided solving (high similarity match).
         
         Instead of injecting raw KB content (which can confuse code generation),
-        we tell the LLM that a matching topic was found and let it use its training.
+        we tell the LLM that a matching topic was found and let it use its training,
+        while maintaining the Program-of-Thoughts reasoning format.
         """
         # Extract just the topic names from RAG context for guidance
         topic_hint = ""
@@ -157,25 +157,12 @@ You are a friendly Math Mentor continuing a conversation.
             if match:
                 topic_hint = match.group(1).strip()
         
-        prompt = f"""You are a Math Tutor. Solve this problem using SymPy.
-
-**TOPIC HINT:** This problem is related to: {topic_hint if topic_hint else "mathematics"}
-
-**PROBLEM:**
-{problem}
-
-**INSTRUCTIONS:**
-1. Write Python code using SymPy to solve this problem.
-2. Store the final answer in a variable named `answer`.
-3. Use appropriate SymPy functions (simplify, solve, integrate, etc.).
-4. The code should be complete and executable.
-
-**Output ONLY the Python code inside ```python``` tags.**
-"""
-        if memory_context:
-            prompt += f"\n\n**Past Experience:**\n{memory_context}"
+        kb_hint = f"### KB GUIDANCE: This problem is related to: {topic_hint if topic_hint else 'mathematics'}. Use this to guide your solution strategy."
         
-        return prompt
+        combined_hints = f"{dynamic_hints}\n{kb_hint}" if dynamic_hints else kb_hint
+        
+        # Use standard prompt builder but omit raw rag_context to avoid confusion
+        return self._build_prompt(problem, rag_context="", memory_context=memory_context, dynamic_hints=combined_hints)
     
     
     def solve_structured(self, problem: str, context: Optional[Dict] = None) -> Optional[MathDeck]:
@@ -236,16 +223,12 @@ Create a clear, step-by-step explanation for: "{problem}"
              
         return base_prompt
 
-    def _build_prompt(self, problem: str, rag_context: str = "", memory_context: str = "") -> str:
-        """
-        Build the prompt for code generation.
-        
-        Critical design choices:
-        1. Forbid the LLM from calculating directly
-        2. Require storing final answer in `answer` variable
-        3. Provide examples to guide output format
-        """
+    def _build_prompt(self, problem: str, rag_context: str = "", memory_context: str = "", dynamic_hints: str = "") -> str:
+        """Build the prompt for code generation."""
         full_problem = problem
+        if dynamic_hints:
+            full_problem = f"{dynamic_hints}\n\n**Problem**: {problem}"
+            
         if rag_context:
             full_problem += f"\n\n[RELEVANT MATH KNOWLEDGE]\n{rag_context}"
         
@@ -253,24 +236,40 @@ Create a clear, step-by-step explanation for: "{problem}"
             full_problem += f"\n\n[PAST EXPERIENCE / SIMILAR PROBLEMS]\nUse this history to avoid previous mistakes:\n{memory_context}"
             
         try:
-            from prompts import get_prompt
+            from backend.prompts import get_prompt
             template = get_prompt("solver_basic")
             return template.format(problem=full_problem)
         except Exception:
-            # Fallback to inline prompt if file loading fails
-            return f"""You are a math problem solver that generates ONLY executable Python code using SymPy.
+            # Fallback
+            return f"Solve using SymPy. Store in 'answer'.\n\n{full_problem}"
 
-**Problem**: {problem}
+    def _get_feature_hints(self, features: List[str]) -> str:
+        """Generate dynamic SymPy implementation hints based on problem features."""
+        if not features:
+            return ""
+            
+        hints = ["### DYNAMIC STRATEGY: Detection realized these requirements:"]
+        
+        mapping = {
+            "piecewise": "- **Piecewise detected**: Use `Piecewise((expr1, cond1), (expr2, cond2))` and check continuity/differentiability at boundaries.",
+            "maxima_minima": "- **Optimization detected**: Calculate `diff(f, x)`, solve for 0, and verify with second derivative or endpoint check.",
+            "implicit_diff": "- **Implicit function detected**: Use `idiff(equation, dependent_var, independent_var)` for derivatives.",
+            "matrix": "- **Linear Algebra detected**: Use `Matrix([[...]])` and its methods (.det(), .inv(), .eigenvals()).",
+            "complex_numbers": "- **Complex domain detected**: Use `I` for imag unit and `expand_complex()` if needed.",
+            "differential_equation": "- **ODE detected**: Use `dsolve(Equality(LHS, RHS), y(x))`.",
+            "system_of_equations": "- **System detected**: Use `solve([eq1, eq2], [x, y])` or `nonlinsolve` for non-linear systems.",
+            "trigonometry": "- **Trigonometry detected**: Use `trigsimp()`, `expand_trig()`, or `rewrite(sin)` to simplify expressions."
+        }
+        
+        for f in features:
+            if f in mapping:
+                hints.append(mapping[f])
+                
+        if len(hints) <= 1:
+            return ""
+            
+        return "\n".join(hints) + "\n"
 
-**Rules**:
-1. Import everything from sympy: `from sympy import *`
-2. Solve the problem symbolically using SymPy functions
-3. Store the final answer in a variable named `answer`
-4. Do NOT compute manually - let SymPy do all calculations
-5. Output ONLY the code - no explanations before or after
-
-Now generate code for the given problem. Output ONLY the Python code inside ```python``` tags.
-"""
 
     def _extract_code(self, response_text: str) -> Optional[str]:
         """

@@ -9,6 +9,11 @@ import base64
 from typing import Dict, Optional
 from PIL import Image
 import io
+try:
+    import pytesseract
+    HAS_TESSERACT = True
+except ImportError:
+    HAS_TESSERACT = False
 
 from backend.config import config
 
@@ -67,14 +72,33 @@ class MathOCR:
             result = self._gemini_vision_extract(image_bytes, raw_text)
             return result
         except Exception as e:
-            return {
-                "latex": None,
-                "confidence": 0.0,
-                "method": "failed",
-                "raw_text": raw_text,
-                "needs_review": True,
-                "error": str(e)
-            }
+            # Fallback to Tesseract if both Cloud Vision and Gemini fail (or local offline mode)
+            try:
+                print(f"Gemini Vision failed: {e}, falling back to Tesseract")
+                if not HAS_TESSERACT:
+                    raise Exception("pytesseract is not installed")
+                pil_image = Image.open(io.BytesIO(image_bytes))
+                tesseract_text = pytesseract.image_to_string(pil_image).strip()
+                if not tesseract_text:
+                    raise Exception("Tesseract returned empty string")
+                return {
+                    "problem_data": {"problem_text_full": tesseract_text, "given_values": [], "question": "Unknown", "problem_type_hint": "unknown", "confidence": 0.3},
+                    "latex": tesseract_text,
+                    "confidence": 0.3, # Low confidence for raw tesseract
+                    "method": "pytesseract",
+                    "raw_text": raw_text or tesseract_text,
+                    "needs_review": True,
+                    "error": None
+                }
+            except Exception as tess_e:
+                return {
+                    "latex": None,
+                    "confidence": 0.0,
+                    "method": "failed",
+                    "raw_text": raw_text,
+                    "needs_review": True,
+                    "error": f"All OCR methods failed. Last error (Tesseract): {tess_e}"
+                }
     
     def _cloud_vision_ocr(self, image_bytes: bytes) -> str:
         """Extract raw text using Google Cloud Vision."""
@@ -122,18 +146,20 @@ class MathOCR:
         """Build prompt for Gemini Vision - FULL TEXT EXTRACTION."""
         base_prompt = """You are a mathematical OCR expert. Extract the COMPLETE problem from this image.
 
-**CRITICAL: Extract EVERYTHING, not just equations**:
+**CRITICAL: Extract EVERYTHING exactly as it appears (including all text and math)**:
 1. Problem statement (the scenario/word problem description)
 2. Given information (equations, values, constraints)
 3. The question being asked (find/calculate/prove what?)
-4. Any additional context
+4. Multiple-choice options (e.g., (A), (B), (C), (D)), if present.
+5. Any additional context
 
 **Output Format** (JSON):
 {
-  "problem_text_full": "Complete problem statement including all text",
+  "problem_text_full": "Complete problem statement including all text, math, AND multiple-choice options exactly as written",
   "given_values": ["equation1", "equation2", ...],
   "question": "What is being asked (find X, calculate Y, etc.)",
-  "problem_type_hint": "algebra/calculus/probability/geometry/etc."
+  "problem_type_hint": "algebra/calculus/probability/geometry/etc.",
+  "confidence": 0.95 // Explicitly rate your extraction confidence from 0.0 to 1.0 based on image clarity
 }
 
 **Examples**:
@@ -144,7 +170,18 @@ Output:
   "problem_text_full": "Solve x² + 3x - 4 = 0 for x",
   "given_values": ["x² + 3x - 4 = 0"],
   "question": "Solve for x",
-  "problem_type_hint": "algebra"
+  "problem_type_hint": "algebra",
+  "confidence": 0.95
+}
+
+Image: "What is the value of 2 + 2?\\n(A) 3\\n(B) 4\\n(C) 5\\n(D) 6"
+Output:
+{
+  "problem_text_full": "What is the value of 2 + 2?\\n(A) 3\\n(B) 4\\n(C) 5\\n(D) 6",
+  "given_values": ["2 + 2"],
+  "question": "What is the value?",
+  "problem_type_hint": "algebra",
+  "confidence": 0.99
 }
 
 Image: "Three students can solve a problem with probabilities 1/3, 1/10, 1/12. Find P(at least one solves)"
@@ -153,7 +190,8 @@ Output:
   "problem_text_full": "Three students S₁, S₂, S₃ can solve a problem. P(S₁) = 1/3, P(S₂) = 1/10, P(S₃) = 1/12. Find probability that at least one solves the problem.",
   "given_values": ["P(S₁) = 1/3", "P(S₂) = 1/10", "P(S₃) = 1/12"],
   "question": "Find P(at least one student solves)",
-  "problem_type_hint": "probability"
+  "problem_type_hint": "probability",
+  "confidence": 0.90
 }
 
 **If image is unclear**: Output {"problem_text_full": "UNCLEAR: <reason>"}
@@ -196,63 +234,21 @@ Output:
                 "problem_text_full": response_text,
                 "given_values": [],
                 "question": "Unknown",
-                "problem_type_hint": "unknown"
+                "problem_type_hint": "unknown",
+                "confidence": 0.5
             }, 0.5, True
     
     def _calculate_confidence_structured(self, problem_data: dict) -> float:
-        """Calculate confidence from structured problem data."""
-        confidence = 0.5  # Base
-        
-        # Has full problem text (+0.2)
-        if problem_data.get("problem_text_full") and len(problem_data["problem_text_full"]) > 20:
-            confidence += 0.2
-        
-        # Has given values (+0.1)
-        if problem_data.get("given_values"):
-            confidence += 0.1
-        
-        # Has clear question (+0.1)
-        if problem_data.get("question") and problem_data["question"] != "Unknown":
-            confidence += 0.1
-        
-        # Has problem type (+0.1)
-        if problem_data.get("problem_type_hint") and problem_data["problem_type_hint"] != "unknown":
-            confidence += 0.1
-        
-        return min(confidence, 1.0)
-    
-    def _calculate_confidence(self, latex: str) -> float:
-        """
-        Heuristic confidence calculation.
-        
-        Factors:
-        - Length (very short might be incomplete)
-        - Contains mathematical symbols
-        - Proper LaTeX syntax (backslashes, braces)
-        """
-        if not latex or len(latex) < 3:
-            return 0.3
-        
-        confidence = 0.5  # Base confidence
-        
-        # Has LaTeX commands (+0.2)
-        if "\\" in latex:
-            confidence += 0.2
-        
-        # Has proper braces (+0.1)
-        if "{" in latex and "}" in latex:
-            confidence += 0.1
-        
-        # Has math operators (+0.1)
-        math_symbols = ["+", "-", "=", "^", "_", "\\int", "\\frac", "\\sum"]
-        if any(sym in latex for sym in math_symbols):
-            confidence += 0.1
-        
-        # Not too short (+0.1)
-        if len(latex) > 10:
-            confidence += 0.1
-        
-        return min(confidence, 1.0)
+        """Use the LLM's self-reported confidence, or fallback."""
+        try:
+            # Use the LLM's self-reported confidence if it provided it
+            if "confidence" in problem_data:
+                return float(problem_data["confidence"])
+        except ValueError:
+            pass
+            
+        # Fallback if no valid confidence was provided
+        return 0.5
 
 
 if __name__ == "__main__":

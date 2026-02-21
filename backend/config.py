@@ -30,9 +30,10 @@ class Config:
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     GEMINI_VISION_MODEL: str = os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash")
     
-    # Google Cloud Vision (optional)
+    # Google Cloud (Vertex AI / Vision / STT)
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    GOOGLE_PROJECT_ID: str = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_PROJECT_ID", "")
+    GCP_PROJECT_ID: str = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_PROJECT_ID", "")
+    GCP_LOCATION: str = os.getenv("GCP_LOCATION", "us-central1")
     
     # Google Speech-to-Text V2 (Chirp 2)
     STT_LOCATION: str = os.getenv("STT_LOCATION", "us-central1")

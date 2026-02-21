@@ -21,7 +21,7 @@ class MathASR:
     
     def __init__(self):
         """Initialize Google Speech Client."""
-        if not config.GOOGLE_PROJECT_ID:
+        if not config.GCP_PROJECT_ID:
             # We allow initialization without creds to not crash app start,
             # but methods will fail if called.
             print("WARNING: GOOGLE_PROJECT_ID not set. ASR will not work.")
@@ -30,7 +30,7 @@ class MathASR:
             
         try:
             self.client = SpeechClient()
-            self.project_id = config.GOOGLE_PROJECT_ID
+            self.project_id = config.GCP_PROJECT_ID
             # Use 'global' location for standard STT V2
             self.location = "global"
             
@@ -113,6 +113,6 @@ if __name__ == "__main__":
     # Test initialization
     asr = MathASR()
     if asr.client:
-        print(f"ASR Initialized for project: {config.GOOGLE_PROJECT_ID}")
+        print(f"ASR Initialized for project: {config.GCP_PROJECT_ID}")
     else:
         print("ASR Initialization failed (check config)")

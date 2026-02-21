@@ -109,9 +109,9 @@ def feedback_dialog(problem: str, wrong_answer: str):
     explanation = st.text_area("Explanation / Key Lesson", 
                               placeholder="Why is it wrong? e.g., 'You forgot to integrate the constant term'")
     
-    if st.button("Submit Feedback", type="primary"):
+    if st.button("Submit Feedback & Re-solve", type="primary"):
         if correct_answer:
-            with st.spinner("Saving to memory..."):
+            with st.spinner("Saving to memory and re-evaluating..."):
                 # Call backend to store correction
                 st.session_state.orchestrator.solver.memory.add_feedback(
                     problem=problem,
@@ -119,9 +119,19 @@ def feedback_dialog(problem: str, wrong_answer: str):
                     correct_answer=correct_answer,
                     explanation=explanation
                 )
-            st.success("Feedback saved! I'll remember this next time.")
+                st.success("Feedback saved! Re-attempting the problem...")
+                
+                # Automatically trigger a re-evaluation
+                retry_msg = (
+                    f"Please re-solve this problem: {problem}\n\n"
+                    f"Note: Your previous answer ({wrong_answer}) was incorrect. "
+                    f"The correct answer is {correct_answer}. "
+                    f"Keep this lesson in mind: {explanation}"
+                )
+                process_input(retry_msg)
+                
             import time
-            time.sleep(1.5)
+            time.sleep(1.0)
             st.rerun()
         else:
             st.warning("Please provide a correct answer.")

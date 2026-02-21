@@ -79,6 +79,10 @@ class ChatMessage(BaseModel):
         None,
         description="Complete solution state for assistant messages"
     )
+    events: List[str] = Field(
+        default_factory=list,
+        description="Events that happened during message generation"
+    )
     timestamp: float = Field(
         default_factory=time.time,
         description="Unix timestamp of when the message was created"
@@ -140,6 +144,7 @@ class ConversationMemory(BaseModel):
                     content TEXT,
                     deck_json TEXT,
                     solution_state_json TEXT,
+                    events_json TEXT,
                     timestamp REAL
                 )
             """)
@@ -164,6 +169,12 @@ class ConversationMemory(BaseModel):
                 conn.execute("ALTER TABLE messages ADD COLUMN solution_state_json TEXT")
             except sqlite3.OperationalError:
                 pass # Column likely already exists
+            
+            # Migration: Add events_json column if it doesn't exist
+            try:
+                conn.execute("ALTER TABLE messages ADD COLUMN events_json TEXT")
+            except sqlite3.OperationalError:
+                pass # Column likely already exists
 
     def _load_history(self):
         """Load history from the database for the current session (or most recent)."""
@@ -185,10 +196,10 @@ class ConversationMemory(BaseModel):
                     self.session_id, self.active_problem, self.active_answer = row
                     
                     # Load messages (include solution_state)
-                    cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (self.session_id,))
+                    cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, events_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (self.session_id,))
                     
                     self.messages = []
-                    for role, content, deck_json, state_json, ts in cursor.fetchall():
+                    for role, content, deck_json, state_json, events_json, ts in cursor.fetchall():
                         deck = None
                         if deck_json and MathDeck:
                             try:
@@ -203,11 +214,19 @@ class ConversationMemory(BaseModel):
                             except Exception:
                                 pass # Ignore state errors
                         
+                        events = []
+                        if events_json:
+                            try:
+                                events = json.loads(events_json)
+                            except Exception:
+                                pass
+                        
                         self.messages.append(ChatMessage(
                             role=role, 
                             content=content, 
                             deck=deck,
                             solution_state=solution_state,
+                            events=events,
                             timestamp=ts
                         ))
                     return True
@@ -226,9 +245,9 @@ class ConversationMemory(BaseModel):
             except Exception as e:
                 print(f"Episodic add failed: {e}")
     
-    def add_assistant_message(self, content: str, deck: Optional[MathDeck] = None, solution_state: Optional[SolutionState] = None) -> None:
-        """Add an assistant message (with optional deck and solution state) and persist."""
-        msg = ChatMessage(role="assistant", content=content, deck=deck, solution_state=solution_state)
+    def add_assistant_message(self, content: str, deck: Optional[MathDeck] = None, solution_state: Optional[SolutionState] = None, events: Optional[List[str]] = None) -> None:
+        """Add an assistant message (with optional deck, solution state, and events) and persist."""
+        msg = ChatMessage(role="assistant", content=content, deck=deck, solution_state=solution_state, events=events or [])
         self.messages.append(msg)
         self._persist_message(msg)
         if self._episodic:
@@ -248,10 +267,11 @@ class ConversationMemory(BaseModel):
         """Save message to SQLite."""
         deck_json = msg.deck.model_dump_json() if msg.deck else None
         state_json = msg.solution_state.model_dump_json() if msg.solution_state else None
+        events_json = json.dumps(msg.events) if msg.events else None
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(
-                "INSERT INTO messages (session_id, role, content, deck_json, solution_state_json, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-                (self.session_id, msg.role, msg.content, deck_json, state_json, msg.timestamp)
+                "INSERT INTO messages (session_id, role, content, deck_json, solution_state_json, events_json, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (self.session_id, msg.role, msg.content, deck_json, state_json, events_json, msg.timestamp)
             )
 
     def set_active_problem(self, problem: str, answer: Optional[str] = None) -> None:
@@ -302,43 +322,7 @@ class ConversationMemory(BaseModel):
         
         return "\n".join(context_parts)
     
-    def is_follow_up(self, new_input: str) -> bool:
-        """
-        Heuristic to determine if new_input is a follow-up question.
-        Returns True if it seems like a follow-up, False if it's a new problem.
-        """
-        # If no active problem, it's definitely a new problem
-        if not self.active_problem:
-            return False
-        
-        # Keywords that suggest a new problem
-        new_problem_keywords = [
-            "solve", "find", "calculate", "evaluate", "integrate", 
-            "differentiate", "factor", "simplify", "expand"
-        ]
-        
-        # Keywords that suggest a follow-up
-        follow_up_keywords = [
-            "why", "how", "explain", "what", "can you", "tell me more",
-            "i don't understand", "step", "again", "that"
-        ]
-        
-        lower_input = new_input.lower().strip()
-        
-        # Check for explicit math notation (likely a new problem)
-        if any(char in new_input for char in ["=", "^", "√", "∫"]):
-            return False
-        
-        # Check for follow-up keywords
-        if any(kw in lower_input for kw in follow_up_keywords):
-            return True
-        
-        # Check for new problem keywords
-        if any(lower_input.startswith(kw) for kw in new_problem_keywords):
-            return False
-        
-        # Default: if short and no math symbols, likely a follow-up
-        return len(lower_input.split()) < 10
+
     def search_memories(self, query: str, top_k: int = 3) -> str:
         """
         Retrieve relevant past interactions from episodic memory.
@@ -388,9 +372,9 @@ class ConversationMemory(BaseModel):
                 self.active_problem, self.active_answer = row
                 
                 # Get messages (include solution_state)
-                cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
+                cursor = conn.execute("SELECT role, content, deck_json, solution_state_json, events_json, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", (session_id,))
                 self.messages = []
-                for role, content, deck_json, state_json, ts in cursor.fetchall():
+                for role, content, deck_json, state_json, events_json, ts in cursor.fetchall():
                     deck = None
                     if deck_json and MathDeck:
                         try:
@@ -403,11 +387,18 @@ class ConversationMemory(BaseModel):
                             solution_state = SolutionState.model_validate_json(state_json)
                         except Exception: pass
                     
+                    events = []
+                    if events_json:
+                        try:
+                            events = json.loads(events_json)
+                        except Exception: pass
+                    
                     self.messages.append(ChatMessage(
                         role=role,
                         content=content,
                         deck=deck,
                         solution_state=solution_state,
+                        events=events,
                         timestamp=ts
                     ))
                 return True

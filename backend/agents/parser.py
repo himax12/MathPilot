@@ -248,6 +248,7 @@ Now parse the given problem.
 **Classify as NEW_PROBLEM if:**
 - The user is introducing a completely new math problem to solve.
 - There is no active conversation or the message is completely unrelated to previous context.
+- The user explicitly asks you to "re-solve" a problem, or the message starts with phrases like "Please re-solve this problem" (this indicates a full re-evaluation is needed).
 - The message contains equations or problem statements meant to be solved from scratch.
 
 **Respond with EXACTLY one of these:**

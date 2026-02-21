@@ -273,7 +273,11 @@
         document.querySelectorAll('.slide-content').forEach(el => {
             let html = el.innerHTML;
             html = html.replace(/\$([^$]+)\$/g, (match, latex) => {
-                try { return katex.renderToString(latex, { throwOnError: false }); } 
+                try { 
+                    // Unescape HTML entities before sending to KaTeX
+                    let decoded_latex = latex.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+                    return katex.renderToString(decoded_latex, { throwOnError: false }); 
+                } 
                 catch (e) { return match; }
             });
             el.innerHTML = html;

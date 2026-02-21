@@ -5,6 +5,7 @@ Transforms structured math explanations into HTML presentation decks.
 
 import re
 import os
+import html
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from jinja2 import Environment, FileSystemLoader, BaseLoader
@@ -243,18 +244,19 @@ class DeckGenerator:
             slides.append(Slide(
                 slide_type="intuition",
                 title="💡 Key Insight",
-                content=intuition
+                content=html.unescape(intuition)
             ))
         
         # Step slides
         for step in (steps or []):
             step_num = step.get("number", len(slides))
+            content = html.unescape(step.get("content", ""))
             slides.append(Slide(
                 slide_type="step",
                 title=f"Step {step_num}",
-                content=step.get("content", ""),
+                content=content,
                 step_number=step_num,
-                latex_blocks=self.parser.extract_latex(step.get("content", ""))
+                latex_blocks=self.parser.extract_latex(content)
             ))
         
         # Visualization slide (auto-generate diagram if geometry)
@@ -268,7 +270,7 @@ class DeckGenerator:
             slides.append(Slide(
                 slide_type="visualization",
                 title="📊 Visual Explanation",
-                content=visualization,
+                content=html.unescape(visualization) if visualization else "",
                 diagram=diagram
             ))
         
@@ -277,11 +279,11 @@ class DeckGenerator:
             slides.append(Slide(
                 slide_type="answer",
                 title="🎯 Final Answer",
-                content=answer
+                content=html.unescape(answer)
             ))
         
         # Create deck
-        deck = Deck(title=title, slides=slides, theme=self.theme_name, answer=answer)
+        deck = Deck(title=title, slides=slides, theme=self.theme_name, answer=html.unescape(answer) if answer else "")
         
         return self._render_html(deck)
     
@@ -311,13 +313,16 @@ class DeckGenerator:
                     params
                 )
             
+            # Unescape HTML entities to fix LaTeX rendering
+            content = html.unescape(slide.content) if slide.content else ""
+            
             # Extract LaTeX from content (reusing existing logic)
-            latex_blocks = self.parser.extract_latex(slide.content)
+            latex_blocks = self.parser.extract_latex(content)
             
             slides.append(Slide(
                 slide_type=slide.type,
                 title=slide.title,
-                content=slide.content,
+                content=content,
                 diagram=diagram_b64,
                 latex_blocks=latex_blocks,
                 step_number=slide.step_number or (i if slide.type == 'step' else None)
@@ -327,7 +332,7 @@ class DeckGenerator:
             title=deck_data.title,
             slides=slides,
             theme=self.theme_name,
-            answer=deck_data.final_answer
+            answer=html.unescape(deck_data.final_answer) if deck_data.final_answer else ""
         )
         
         return self._render_html(deck)
@@ -490,7 +495,8 @@ class DeckGenerator:
             const text = el.innerHTML;
             el.innerHTML = text.replace(/\\$(.+?)\\$/g, (match, latex) => {{
                 try {{
-                    return katex.renderToString(latex, {{ throwOnError: false }});
+                    let decoded_latex = latex.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+                    return katex.renderToString(decoded_latex, {{ throwOnError: false }});
                 }} catch (e) {{
                     return match;
                 }}

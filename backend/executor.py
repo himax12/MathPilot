@@ -19,7 +19,8 @@ from backend.config import config
 
 
 class TimeoutException(Exception):
-    """Raised when code execution exceeds timeout."""
+    """Raised when 
+    +code execution exceeds timeout."""
     pass
 
 
@@ -35,13 +36,20 @@ def timeout(seconds: int):
         def timeout_handler(signum, frame):
             raise TimeoutException("Code execution timed out")
             
-        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(seconds)
+        try:
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(seconds)
+            is_set = True
+        except ValueError:
+            # signal only works in main thread of the main interpreter
+            is_set = False
+            
         try:
             yield
         finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old_handler)
+            if is_set:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
     else:
         # Fallback: no timeout protection
         yield

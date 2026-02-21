@@ -53,23 +53,23 @@ class KBEmbedder:
     
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize embedder with Gemini API.
+        Initialize embedder with Vertex AI (GCP credentials).
         
-        Args:
-            api_key: Gemini API key (defaults to GEMINI_API_KEY env var)
+        Uses GCP_PROJECT_ID and GCP_LOCATION from environment to
+        authenticate via Vertex AI, which supports text-embedding-004.
         """
         if not FAISS_AVAILABLE:
             raise ImportError("faiss-cpu required. Run: uv add faiss-cpu")
         if not GENAI_AVAILABLE:
             raise ImportError("google-genai required. Run: uv add google-genai")
         
-        # Get API key
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
+        # Initialize client via Vertex AI (GCP credentials)
+        project = os.getenv("GCP_PROJECT_ID", "")
+        location = os.getenv("GCP_LOCATION", "us-central1")
+        if not project:
+            raise ValueError("GCP_PROJECT_ID environment variable not set (required for embeddings)")
         
-        # Initialize client
-        self.client = genai.Client(api_key=self.api_key)
+        self.client = genai.Client(vertexai=True, project=project, location=location)
         
         self.index: Optional[faiss.IndexFlatL2] = None
         self.metadata: List[Dict[str, Any]] = []

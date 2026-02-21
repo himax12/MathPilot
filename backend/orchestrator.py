@@ -235,26 +235,6 @@ class Orchestrator:
                 ctx.status = "verified"
                 events.append("✅ Verification Passed!")
                 ctx.attempts.append(attempt)
-
-                # D. Explain (5th Agent — JEE Tutor)
-                events.append("🎓 Generating JEE Tutor Explanation...")
-                try:
-                    ctx.explanation = self.explainer.explain(
-                        problem=ctx.parsed.problem_text,
-                        answer=str(attempt.solution.get("answer", "")),
-                        domain=ctx.parsed.topic,
-                        approach=ctx.parsed.approach,
-                        rag_context=ctx.rag_context,
-                        code=attempt.solution.get("code", ""),
-                    )
-                    if not ctx.explanation.error:
-                        events.append(f"🎓 JEE Tutor Explanation generated (ExplainerAgent) — Chapter: {ctx.explanation.chapter_tag} [{ctx.explanation.difficulty}]")
-                    else:
-                        events.append(f"⚠️ Explainer partial: {ctx.explanation.error}")
-                except Exception as _e:
-                    ctx.explanation = Explanation(error=str(_e))
-                    events.append(f"⚠️ Explainer failed: {_e}")
-
                 break
             else:
                 events.append(f"❌ Verification Failed: {verification.issues}")
@@ -282,44 +262,75 @@ class Orchestrator:
                 events.append(f"🤔 Reflection: {reflection}")
                 ctx.attempts.append(attempt)
         
-        # 5. Final Output Generation
-        msg = ""
-        last = ctx.attempts[-1] if ctx.attempts else None
+        # 5. Determine the best available solution state
+        target_solution = ctx.final_solution if ctx.status == "verified" else (last.solution if last else None)
+        target_answer = target_solution.get("answer", "") if target_solution else ""
+        target_code = target_solution.get("code", "") if target_solution else ""
+        target_reasoning = target_solution.get("reasoning", "") if target_solution else ""
         
-        # Check if we need Human in the Loop for verification
-        if ctx.status != "verified" and last and getattr(last.verification, 'needs_hitl', False):
+        # Guardrail: Is the answer a total failure?
+        is_total_failure = target_answer in ["", "Generation Failed", "Error"] or target_solution is None
+        
+        # D. Explain (5th Agent — JEE Tutor)
+        # Only try to explain if we actually produced a mathematically plausible answer
+        if not is_total_failure:
+            events.append("🎓 Generating JEE Tutor Explanation...")
+            try:
+                ctx.explanation = self.explainer.explain(
+                    problem=ctx.parsed.problem_text,
+                    answer=str(target_answer),
+                    domain=ctx.parsed.topic,
+                    approach=ctx.parsed.approach,
+                    rag_context=ctx.rag_context,
+                    code=target_code,
+                )
+                if not ctx.explanation.error:
+                    events.append(f"🎓 JEE Tutor Explanation generated (ExplainerAgent) — Chapter: {ctx.explanation.chapter_tag} [{ctx.explanation.difficulty}]")
+                else:
+                    events.append(f"⚠️ Explainer partial: {ctx.explanation.error}")
+            except Exception as _e:
+                ctx.explanation = Explanation(error=str(_e))
+                events.append(f"⚠️ Explainer failed: {_e}")
+        else:
+            ctx.explanation = None
+            events.append("⏭️ Skipped Explanation generation due to solver failure.")
+
+        # 6. Final Message UI Generation
+        msg = ""
+        
+        # State A: Verification Assistance Needed (Solver ran, answer output, but Verifier is unsure)
+        if ctx.status != "verified" and last and getattr(last.verification, 'needs_hitl', False) and not is_total_failure:
             ctx.status = "verification_hitl"
-            reasoning = last.solution.get('reasoning', 'No reasoning available')
-            reasoning = strip_code_from_reasoning(reasoning)
-            msg = f"### Verification Assistance Needed ⚠️\n\nI've produced an answer, but I am not completely sure if it is correct.\n\n{reasoning}\n\n**Calculated Answer:** {last.solution.get('answer', 'Unknown')}\n\n*Why I need help:* {', '.join(last.verification.issues)}\n\nPlease review and let me know if it's correct!"
+            reasoning = strip_code_from_reasoning(target_reasoning)
+            msg = f"### Verification Assistance Needed ⚠️\n\nI've produced an answer, but I am not completely sure if it is correct.\n\n{reasoning}\n\n**Calculated Answer:** {target_answer}\n\n*Why I need help:* {', '.join(last.verification.issues)}\n\nPlease review and let me know if it's correct!"
+        
+        # State B: Fully Verified
         elif ctx.status == "verified":
-            # Strip the entire "Internal Code" section from reasoning
-            reasoning = ctx.final_solution.get('reasoning')
-            reasoning = strip_code_from_reasoning(reasoning) if reasoning else "No reasoning available"
-            
-            msg = f"### Solution\n\n{reasoning}\n\n**Answer:** {ctx.final_solution['answer']}\n\n"
+            reasoning = strip_code_from_reasoning(target_reasoning)
+            msg = f"### Solution\n\n{reasoning}\n\n**Answer:** {target_answer}\n\n"
             if len(ctx.attempts) > 1:
                 msg += f"*Verified in {len(ctx.attempts)} attempts (Reflexion Active).*"
-        else:
-            msg = f"### Solution (Unverified)\n\nI struggled to verify the answer. Here is my best attempt:\n\n"
-            if last:
-                # Strip code section from reasoning
-                reasoning = last.solution.get('reasoning', 'No reasoning available')
-                reasoning = strip_code_from_reasoning(reasoning)
-                if not reasoning:
-                    reasoning = 'No reasoning available'
                 
-                msg += f"{reasoning}\n\n**Possible Answer:** {last.solution.get('answer', 'Unknown')}\n"
-                msg += f"\n*Issues found:* {last.verification.issues}"
+        # State C: Total Failure or Unverified
+        else:
+            msg = f"### Solution (Unverified) ⚠️\n\nI struggled to mathematically verify this answer, so **please check it carefully and tell me if it is correct using the ✅ or ❌ buttons below!**\n\n"
+            reasoning = strip_code_from_reasoning(target_reasoning)
+            if not reasoning:
+                reasoning = 'No reasoning available'
+            
+            msg += f"**My best attempt at reasoning:**\n{reasoning}\n\n**Possible Answer:** {target_answer}\n"
+            if last and last.verification.issues:
+                msg += f"\n*Issues found trying to verify:* {last.verification.issues}"
         
-        # Generator Visual Deck (If verified)
+        # Generator Visual Deck
+        # ONLY generate visuals if we have a plausible reasoning chain
         deck = None
-        if ctx.status == "verified" and ctx.final_solution:
+        if target_solution and not is_total_failure and target_reasoning.strip():
             try:
                 events.append("Generating visual explanation...")
                 deck = self.solver.solve_structured(
                     ctx.parsed.problem_text, 
-                    context={"approach": ctx.final_solution.get("reasoning", "")}
+                    context={"approach": target_reasoning}
                 )
             except Exception as e:
                 events.append(f"Visual generation failed: {e}")

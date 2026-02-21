@@ -23,6 +23,7 @@ class ParsedProblem:
     topic: str  # algebra, calculus, probability, linear_algebra
     question: str = ""
     approach: str = ""
+    features: List[str] = field(default_factory=list)  # e.g., ["piecewise", "maxima_minima"]
     needs_clarification: bool = False
 
 
@@ -56,11 +57,15 @@ class Verification:
 
 @dataclass
 class Explanation:
-    """Output from Explainer Agent."""
+    """Output from Explainer Agent (JEE-aware)."""
     intuition: str = ""
     steps: List[Dict[str, str]] = field(default_factory=list)
     tips: List[str] = field(default_factory=list)
     common_mistakes: List[str] = field(default_factory=list)
+    # JEE-specific fields
+    jee_shortcut: str = ""       # Speed trick for exam conditions
+    difficulty: str = ""         # "Mains", "Advanced", or "Both"
+    chapter_tag: str = ""        # Official JEE chapter name
     error: Optional[str] = None
 
 

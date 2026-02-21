@@ -262,6 +262,8 @@ class Orchestrator:
                 events.append(f"🤔 Reflection: {reflection}")
                 ctx.attempts.append(attempt)
         
+        last = ctx.attempts[-1] if ctx.attempts else None
+
         # 5. Determine the best available solution state
         target_solution = ctx.final_solution if ctx.status == "verified" else (last.solution if last else None)
         target_answer = target_solution.get("answer", "") if target_solution else ""

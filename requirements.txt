@@ -43,8 +43,7 @@ google-api-core==2.29.0 ; python_full_version < '3.14'
     #   google-api-python-client
     #   google-cloud-vision
     #   google-genai
-google-cloud-vision-client==2.188.0
-    # via google-generativeai
+
 google-auth==2.47.0
     # via
     #   google-ai-generativelanguage

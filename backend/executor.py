@@ -6,6 +6,7 @@ Provides timeout protection and error handling.
 import sys
 import io
 import signal
+import threading
 from contextlib import contextmanager
 from typing import Dict, Any
 import sympy
@@ -26,13 +27,14 @@ class TimeoutException(Exception):
 def timeout(seconds: int):
     """
     Context manager that raises TimeoutException after N seconds.
-    Only works on Unix systems. On Windows, just yields without timeout.
+    Only works on Unix systems in the main thread. On Windows or in child threads, 
+    just yields without timeout.
     """
-    def timeout_handler(signum, frame):
-        raise TimeoutException("Code execution timed out")
-    
-    # Set up the timeout (Unix only)
-    if hasattr(signal, 'SIGALRM'):
+    # Set up the timeout (Unix only, main thread only)
+    if hasattr(signal, 'SIGALRM') and threading.current_thread() is threading.main_thread():
+        def timeout_handler(signum, frame):
+            raise TimeoutException("Code execution timed out")
+            
         old_handler = signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(seconds)
         try:
@@ -41,7 +43,7 @@ def timeout(seconds: int):
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
     else:
-        # Windows fallback: no timeout protection
+        # Fallback: no timeout protection
         yield
 
 

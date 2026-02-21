@@ -83,7 +83,10 @@ def init_session_state():
                 "role": msg.role,
                 "content": msg.content,
                 "deck_html": deck_html,
-                "events": [] # Past events not persisted
+                "events": getattr(msg, 'events', []),
+                "confidence": getattr(msg.solution_state, 'confidence', None) if getattr(msg, 'solution_state', None) else None,
+                "rag_context": getattr(msg.solution_state, 'rag_context', None) if getattr(msg, 'solution_state', None) else None,
+                "solution_state": getattr(msg, 'solution_state', None)
             })
     
     if 'ocr' not in st.session_state:
@@ -131,6 +134,7 @@ def render_message(msg: dict, msg_idx: int = 0):
     events = msg.get("events", [])
     confidence = msg.get("confidence")
     rag_context = msg.get("rag_context")
+    explanation = msg.get("explanation")  # Structured Explanation object
     solution_state = msg.get("solution_state") # Contains full context
     
     with st.chat_message(role):
@@ -141,6 +145,66 @@ def render_message(msg: dict, msg_idx: int = 0):
                 st.components.v1.html(deck_html, height=500, scrolling=True)
         else:
             st.markdown(content)
+            
+            # Parser HITL: Clarification Needed
+            if msg.get("status") == "clarification_needed" and msg_idx == len(st.session_state.messages) - 1:
+                clarification = st.text_input("Clarification", key=f"clarify_{msg_idx}", placeholder="e.g. 'Solve for the second part only'")
+                if st.button("Submit Clarification", key=f"btn_clarify_{msg_idx}", type="primary"):
+                    if clarification:
+                        # Append the clarification to the original context and resubmit
+                        process_input(clarification) # Simplified for now, relies on Orchestrator conversational memory
+                        st.rerun()
+            # Verifier HITL: Needs human help verifying
+            elif msg.get("status") == "verification_hitl" and msg_idx == len(st.session_state.messages) - 1:
+                st.warning("I'm not completely sure about this answer. Can you verify?")
+                correct_answer = st.text_input("Correct Answer (if wrong)", key=f"verif_{msg_idx}", placeholder="e.g. 5.2 or x = 2")
+                if st.button("Verify & Continue", key=f"btn_verif_{msg_idx}", type="primary"):
+                    if correct_answer:
+                        feedback_msg = f"Actually, the correct answer is {correct_answer}. Please remember this, but no need to re-solve now."
+                        process_input(feedback_msg)
+                    else:
+                        feedback_msg = "The answer you provided looks correct to me."
+                        process_input(feedback_msg)
+                    st.rerun()
+        if explanation and not getattr(explanation, "error", None):
+            # Format badge text
+            diff_color = "red" if explanation.difficulty == "Advanced" else ("orange" if explanation.difficulty == "Both" else "green")
+            badge = f"**{explanation.chapter_tag}** · :{diff_color}[JEE {explanation.difficulty}]"
+            
+            with st.expander(f"🎓 JEE Tutor Explanation  |  {badge}", expanded=True):
+                # Intuition
+                st.markdown(f"*{explanation.intuition}*")
+                
+                # Concept / Shortcut Callout
+                if explanation.jee_shortcut:
+                    st.info(f"**⚡ JEE Shortcut:** {explanation.jee_shortcut}")
+                
+                # Steps
+                if explanation.steps:
+                    st.markdown("### Step-by-Step")
+                    for i, step in enumerate(explanation.steps, 1):
+                        st.markdown(f"**Step {i}: {step.get('step_title', '')}**")
+                        st.markdown(step.get('step_content', ''))
+                
+                # Tips & Mistakes Columns
+                col1, col2 = st.columns(2)
+                with col1:
+                    if explanation.tips:
+                        st.markdown("### ✅ Exam Tips")
+                        for tip in explanation.tips:
+                            st.markdown(f"- {tip}")
+                with col2:
+                    if explanation.common_mistakes:
+                        st.markdown("### ⚠️ Common Mistakes")
+                        for mistake in explanation.common_mistakes:
+                            st.markdown(f"- {mistake}")
+                            
+        elif explanation and getattr(explanation, "error", None):
+            with st.expander("🎓 JEE Tutor Explanation (Failed)", expanded=False):
+                st.error(f"Explanation generation failed: {explanation.error}")
+                # Render raw text if we salvaged it into intuition
+                if explanation.intuition:
+                    st.markdown(explanation.intuition)
             
         # 2. Metadata (Only for assistant)
         if role == "assistant":
@@ -185,12 +249,14 @@ def render_message(msg: dict, msg_idx: int = 0):
                     feedback_dialog(problem_context, ans_val)
 
 
-def process_input(user_input: str):
+def process_input(user_input):
     """Process user input via Orchestrator."""
     # Display user message
+    display_text = user_input.get("latex", "") if isinstance(user_input, dict) else str(user_input)
+    
     st.session_state.messages.append({
         "role": "user",
-        "content": user_input
+        "content": display_text
     })
     
     # Run Orchestrator
@@ -202,6 +268,7 @@ def process_input(user_input: str):
     deck = result.get("deck")
     confidence = result.get("confidence")
     rag_context = result.get("rag_context")
+    explanation = result.get("explanation")
     
     deck_html = None
     
@@ -221,6 +288,8 @@ def process_input(user_input: str):
         "events": events,
         "confidence": confidence,
         "rag_context": rag_context,
+        "explanation": explanation,
+        "status": result.get("status"),
         "timestamp": time.time()
     })
 
@@ -249,7 +318,7 @@ def main():
     
     # Sidebar: History Only
     with st.sidebar:
-        if st.button("➕ New Chat", use_container_width=True, type="primary"):
+        if st.button("➕ New Chat", width="stretch", type="primary"):
             st.session_state.orchestrator.clear_conversation()
             st.session_state.messages = []
             st.rerun()
@@ -268,7 +337,7 @@ def main():
             icon = "🟢" if is_active else "📄"
             
             with col1:
-                if st.button(f"{icon} {title}", key=f"btn_{s['session_id']}", use_container_width=True):
+                if st.button(f"{icon} {title}", key=f"btn_{s['session_id']}", width="stretch"):
                     if st.session_state.orchestrator.solver.memory.restore_session_by_id(s['session_id']):
                         st.session_state.messages = []
                         # Sync frontend
@@ -284,12 +353,16 @@ def main():
                                 "role": m.role,
                                 "content": m.content,
                                 "deck_html": deck_html,
-                                "events": [] # Events not persisted
+                                "events": getattr(m, 'events', []),
+                                "explanation": getattr(m, 'explanation', None),
+                                "confidence": getattr(m.solution_state, 'confidence', None) if getattr(m, 'solution_state', None) else None,
+                                "rag_context": getattr(m.solution_state, 'rag_context', None) if getattr(m, 'solution_state', None) else None,
+                                "solution_state": getattr(m, 'solution_state', None)
                             })
                         st.rerun()
             
             with col2:
-                with st.popover("⋮", use_container_width=True):
+                with st.popover("⋮", width="stretch"):
                     if st.button("🗑️", key=f"del_{s['session_id']}", type="primary"):
                         st.session_state.orchestrator.solver.memory.delete_session(s['session_id'])
                         st.rerun()

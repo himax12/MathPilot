@@ -327,12 +327,12 @@ class Orchestrator:
         # Generator Visual Deck
         # ONLY generate visuals if we have a plausible reasoning chain
         deck = None
-        if target_solution and not is_total_failure and target_reasoning.strip():
+        if target_solution and not is_total_failure:
             try:
                 events.append("Generating visual explanation...")
                 deck = self.solver.solve_structured(
                     ctx.parsed.problem_text, 
-                    context={"approach": target_reasoning}
+                    context={"approach": target_reasoning or "Mathematical solution"}
                 )
             except Exception as e:
                 events.append(f"Visual generation failed: {e}")

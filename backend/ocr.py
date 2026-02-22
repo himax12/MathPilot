@@ -296,3 +296,20 @@ if __name__ == "__main__":
     # You would test with actual image bytes here
     print("OCR Module initialized successfully!")
     print(f"Using Cloud Vision: {ocr.use_cloud_vision}")
+
+def process_image(b64_img: str) -> dict:
+    """
+    Entry point for the API to process a base64 encoded image string.
+    """
+    try:
+        image_bytes = base64.b64decode(b64_img)
+        ocr = MathOCR()
+        return ocr.extract_from_image(image_bytes)
+    except Exception as e:
+        print(f"Error in process_image: {e}")
+        return {
+            "latex": None,
+            "problem_data": {},
+            "confidence": 0.0,
+            "error": str(e)
+        }

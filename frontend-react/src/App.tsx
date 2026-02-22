@@ -11,7 +11,7 @@ function MathPilotApp() {
   const [messages, setMessages] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pendingOcr, setPendingOcr] = useState<{ latex: string, problem_data: any } | null>(null)
+  const [pendingOcr, setPendingOcr] = useState<{ latex: string, problem_data: any, imageUrl?: string } | null>(null)
 
   useEffect(() => {
     fetchSessions()
@@ -87,7 +87,12 @@ function MathPilotApp() {
     try {
       const ocr: any = await api.uploadImage(file)
       if (ocr.success && ocr.latex) {
-        setPendingOcr({ latex: ocr.latex, problem_data: ocr.problem_data })
+        const imageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        setPendingOcr({ latex: ocr.latex, problem_data: ocr.problem_data, imageUrl })
       } else {
         setError(ocr.error || "OCR failed. Please try a clearer image or ensure it contains math.")
       }
@@ -98,10 +103,14 @@ function MathPilotApp() {
     }
   }
 
-  const handleConfirmOcr = async (ocrData: { latex: string, problem_data: any }) => {
+  const handleConfirmOcr = async (ocrData: { latex: string, problem_data: any, imageUrl?: string }) => {
     setPendingOcr(null)
     const preview = ocrData.latex.replace(/\s+/g, ' ').trim()
-    const userMsg = { role: "user", content: `📷 Image uploaded: \`${preview.substring(0, 80)}${preview.length > 80 ? '…' : ''}\`` }
+    const userMsg = { 
+      role: "user", 
+      content: `> ${preview.substring(0, 250)}${preview.length > 250 ? '…' : ''}`,
+      imageUrl: ocrData.imageUrl
+    }
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
     setError(null)
@@ -167,17 +176,26 @@ function MathPilotApp() {
 
       {/* OCR Verification Modal */}
       {pendingOcr && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-background border border-border/50 rounded-2xl p-6 shadow-2xl max-w-2xl w-full">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-background border border-border/50 rounded-2xl p-6 shadow-2xl max-w-4xl w-full my-auto">
             <h2 className="text-xl font-semibold mb-4 text-foreground">Verify Math Extraction</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Please check if the text below matches your image. Mathematical notation is written in LaTeX.
+              Please check if the text below matches your image. Mathematical notation is written in LaTeX. You can edit the text if there are any errors.
             </p>
-            <textarea
-              className="w-full h-40 bg-secondary/20 border border-border/50 rounded-xl p-4 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              value={pendingOcr.latex}
-              onChange={(e) => setPendingOcr({...pendingOcr, latex: e.target.value})}
-            />
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              {pendingOcr.imageUrl && (
+                <div className="flex-1 bg-secondary/10 border border-border/30 rounded-xl overflow-hidden flex justify-center items-center min-h-[200px]">
+                  <img src={pendingOcr.imageUrl} alt="Uploaded math problem" className="max-w-full max-h-[400px] object-contain" />
+                </div>
+              )}
+              <div className="flex-1 flex flex-col">
+                <textarea
+                  className="w-full flex-1 min-h-[200px] bg-secondary/20 border border-border/50 rounded-xl p-4 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  value={pendingOcr.latex}
+                  onChange={(e) => setPendingOcr({...pendingOcr, latex: e.target.value})}
+                />
+              </div>
+            </div>
             <div className="flex justify-end gap-3 mt-6">
               <button 
                 onClick={() => setPendingOcr(null)}

@@ -1909,6 +1909,18 @@
       "content": "### Solution\n\n\n\n**Answer:** $-4$, $4$\n\n",
       "session_id": "7debd1c3-a2f4-4b1d-92be-6772c170e5c3",
       "timestamp": null
+    },
+    {
+      "role": "user",
+      "content": "Solve the integral of x^2 * sin(x) dx\n\n",
+      "session_id": "db43b423-eeda-44a4-92f7-daef6885e9ae",
+      "timestamp": null
+    },
+    {
+      "role": "assistant",
+      "content": "### Solution\n\n\n\n**Answer:** $- x^{2} \\cos{\\left(x \\right)} + 2 x \\sin{\\left(x \\right)} + 2 \\cos{\\left(x \\right)}$\n\n",
+      "session_id": "db43b423-eeda-44a4-92f7-daef6885e9ae",
+      "timestamp": null
     }
   ]
 }

@@ -263,7 +263,12 @@ class DeckGenerator:
         if visualization or domain == "geometry":
             diagram = None
             if domain == "geometry":
-                diagram = self.diagram_gen.generate_async("triangle", {})
+                # Fallback to an example triangle, but now using the geometry primitives format
+                diagram = self.diagram_gen.generate_async("geometry", {
+                    "elements": [
+                        {"type": "polygon", "points": [{"x": 0, "y": 0, "label": "A"}, {"x": 4, "y": 0, "label": "B"}, {"x": 2, "y": 3, "label": "C"}]},
+                    ]
+                })
             elif domain == "algebra":
                 diagram = self.diagram_gen.generate_async("parabola", {"a": 1, "b": 0, "c": 0})
             
@@ -299,14 +304,20 @@ class DeckGenerator:
             diagram_b64 = None
             if slide.visual_request:
                 # Agent explicitly requested a visualization
-                # Build params from individual fields
                 params = {}
-                if slide.visual_request.a is not None:
-                    params['a'] = slide.visual_request.a
-                if slide.visual_request.b is not None:
-                    params['b'] = slide.visual_request.b
-                if slide.visual_request.c is not None:
-                    params['c'] = slide.visual_request.c
+                
+                # Check for the new geometry type
+                if slide.visual_request.type == "geometry" and slide.visual_request.elements:
+                    # Convert Pydantic elements to list of dicts for safety
+                    params['elements'] = slide.visual_request.elements
+                else:
+                    # Legacy support for old hardcoded shapes
+                    if slide.visual_request.a is not None:
+                        params['a'] = slide.visual_request.a
+                    if slide.visual_request.b is not None:
+                        params['b'] = slide.visual_request.b
+                    if slide.visual_request.c is not None:
+                        params['c'] = slide.visual_request.c
                     
                 diagram_b64 = self.diagram_gen.generate_async(
                     slide.visual_request.type,
@@ -397,6 +408,22 @@ class DeckGenerator:
             color: {theme["text_primary"]};
             min-height: 100vh;
             padding: 2rem;
+        }}
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(255, 255, 255, 0.3);
         }}
         
         .deck-container {{

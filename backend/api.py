@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -101,37 +102,45 @@ def _serialize_dict(obj):
 @app.post("/api/chat")
 def chat(request: ChatRequest):
     logger.info(f"POST /api/chat — message type: {type(request.message).__name__}, preview: {str(request.message)[:80]}")
-    try:
-        result = orchestrator.run(request.message)
-        logger.info(f"Orchestrator returned status={result.get('status', 'N/A')}, confidence={result.get('confidence', 'N/A')}")
+    
+    def generate():
+        try:
+            for chunk in orchestrator.run_stream(request.message):
+                if chunk["type"] == "final":
+                    result = chunk["data"]
+                    logger.info(f"Orchestrator returned status={result.get('status', 'N/A')}, confidence={result.get('confidence', 'N/A')}")
 
-        ctx = result.get("context")
-        explanation = ctx.explanation if ctx and hasattr(ctx, "explanation") else None
-        
-        deck_obj = result.get("deck")
-        deck_html = None
-        if deck_obj:
-            try:
-                deck_html = deck_generator.from_structured(deck_obj)
-            except Exception as e:
-                logger.error(f"Failed to generate deck_html: {e}")
+                    ctx = result.get("context")
+                    explanation = ctx.explanation if ctx and hasattr(ctx, "explanation") else None
+                    
+                    deck_obj = result.get("deck")
+                    deck_html = None
+                    if deck_obj:
+                        try:
+                            deck_html = deck_generator.from_structured(deck_obj)
+                        except Exception as e:
+                            logger.error(f"Failed to generate deck_html: {e}")
 
-        out = {
-            "response": result.get("response"),
-            "events": result.get("events"),
-            "confidence": result.get("confidence"),
-            "status": result.get("status", "success"),
-            "deck": _serialize_dict(deck_obj),
-            "deck_html": deck_html,
-            "explanation": _serialize_dict(explanation)
-        }
-        logger.debug(f"Returning chat response — events count: {len(out['events'] or [])}")
-        return out
+                    out = {
+                        "response": result.get("response"),
+                        "events": result.get("events"),
+                        "confidence": result.get("confidence"),
+                        "status": result.get("status", "success"),
+                        "deck": _serialize_dict(deck_obj),
+                        "deck_html": deck_html,
+                        "explanation": _serialize_dict(explanation)
+                    }
+                    chunk["data"] = out
+                    logger.debug(f"Returning final chat response — events count: {len(out['events'] or [])}")
+                
+                yield json.dumps(chunk) + "\n"
 
-    except Exception as e:
-        logger.error(f"❌ /api/chat failed: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"❌ /api/chat stream failed: {e}")
+            logger.error(traceback.format_exc())
+            yield json.dumps({"type": "error", "data": str(e)}) + "\n"
+
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 @app.get("/api/sessions")
 def get_sessions():

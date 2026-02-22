@@ -65,13 +65,23 @@ class Orchestrator:
         
     def run(self, user_input) -> Dict[str, Any]:
         """
+        Run the full SOTA math solving pipeline synchronously (backwards compatibility).
+        """
+        last_result = None
+        for chunk in self.run_stream(user_input):
+            if chunk["type"] == "final":
+                last_result = chunk["data"]
+        return last_result
+
+    def run_stream(self, user_input):
+        """
         Run the full SOTA math solving pipeline.
         
         Args:
             user_input: The math problem (text as string OR dictionary with 'latex' and 'problem_data').
             
         Returns:
-            Dict containing final response, events, and debug info.
+            Generator yielding NDJSON chunks: {"type": "event", "data": "..."} and finally {"type": "final", "data": {...}}
         """
         # Extract displayably text if input is a dict
         display_input = user_input.get("latex", "") if isinstance(user_input, dict) else str(user_input)
@@ -86,11 +96,16 @@ class Orchestrator:
             response = self.solver._generate_follow_up_response(display_input)
             events = [reason, "Generated conversational response"]
             self.solver.memory.add_assistant_message(response, events=events)
-            return {
-                "response": response,
-                "events": events,
-                "context": None
+            yield {"type": "event", "data": events[-1]}
+            yield {
+                "type": "final",
+                "data": {
+                    "response": response,
+                    "events": events,
+                    "context": None
+                }
             }
+            return
 
         # Be sure to set this as the active problem for context
         self.solver.memory.set_active_problem(display_input)
@@ -127,16 +142,23 @@ class Orchestrator:
         # 0. GUARDRAIL: Check if input is math-related
         guard_result = self.parser.is_math_related(display_input)
         if not guard_result.get("is_math", True):
-            events.append(f"🚫 Guardrail: {guard_result.get('reason', 'Not math-related')}")
-            return {
-                "response": "I'm a **Math Mentor** specialized in solving mathematical problems. I can help you with:\n\n- Algebra, Calculus, Geometry\n- Probability & Statistics\n- Proofs and Theorems\n- Mathematical Concepts\n\n**Please ask a math-related question!** 📐",
-                "events": events,
-                "status": "guardrail_rejected"
+            events.append(f"⚠️ Guardrail: {guard_result.get('reason', 'Not math-related')}")
+            yield {"type": "event", "data": events[-1]}
+            yield {
+                "type": "final",
+                "data": {
+                    "response": "I'm a **Math Mentor** specialized in solving mathematical problems. I can help you with:\n\n- Algebra, Calculus, Geometry\n- Probability & Statistics\n- Proofs and Theorems\n- Mathematical Concepts\n\n**Please ask a math-related question!**",
+                    "events": events,
+                    "status": "guardrail_rejected"
+                }
             }
+            return
         events.append("✅ Guardrail passed: Math-related query")
+        yield {"type": "event", "data": events[-1]}
         
         # 1. Parse
-        events.append("Parsing problem...")
+        events.append("🧠 Parsing problem...")
+        yield {"type": "event", "data": events[-1]}
         parsed_dict = self.parser.parse(user_input)
         
         # Convert Dict to ParsedProblem Object
@@ -150,14 +172,20 @@ class Orchestrator:
         )
         
         if ctx.parsed.needs_clarification:
-            return {
-                "response": f"I need clarification: {ctx.parsed.problem_text}",
-                "status": "clarification_needed"
+            yield {
+                "type": "final",
+                "data": {
+                    "response": f"I need clarification: {ctx.parsed.problem_text}",
+                    "status": "clarification_needed"
+                }
             }
+            return
         # 2. Route
-        events.append("Routing to domain specialist...")
+        events.append("🧠 Routing to domain specialist...")
+        yield {"type": "event", "data": events[-1]}
         for i in range(self.max_retries):
-            events.append(f"Attempt {i+1}/{self.max_retries}...")
+            events.append(f"🧠 Attempt {i+1}/{self.max_retries}...")
+            yield {"type": "event", "data": events[-1]}
             
             # A. Solve
             # If this is a retry, inject reflection history
@@ -181,15 +209,18 @@ class Orchestrator:
                 # Show solving mode in events
                 solving_mode = solution.get('solving_mode', 'Unknown')
                 events.append(f"🧠 Solving Mode: {solving_mode}")
+                yield {"type": "event", "data": events[-1]}
                 
                 if solution.get('rag_context'):
                     ctx.rag_context = solution['rag_context']
                     # Create a concise preview for the UI
                     preview = solution['rag_context'].split('\n')[0][:80] + "..."
-                    events.append(f"📚 RAG Retrieved: {preview}")
+                    events.append(f"🧠 RAG Retrieved: {preview}")
+                    yield {"type": "event", "data": events[-1]}
 
             if solution['error']:
-                events.append(f"Solver Error: {solution['error']}")
+                events.append(f"⚠️ Solver Error: {solution['error']}")
+                yield {"type": "event", "data": events[-1]}
                 ctx.attempts.append(Attempt(
                     round=i,
                     solution={**solution, "answer": "Generation Failed"},
@@ -199,7 +230,8 @@ class Orchestrator:
                 continue
                 
             # B. Verify
-            events.append("Verifying solution...")
+            events.append("🧠 Verifying solution...")
+            yield {"type": "event", "data": events[-1]}
             
             # Use Verifier's executor to run the solution code to get the answer
             exec_result = self.verifier.executor.execute(solution['code'])
@@ -234,10 +266,12 @@ class Orchestrator:
                 ctx.final_solution = attempt.solution
                 ctx.status = "verified"
                 events.append("✅ Verification Passed!")
+                yield {"type": "event", "data": events[-1]}
                 ctx.attempts.append(attempt)
                 break
             else:
-                events.append(f"❌ Verification Failed: {verification.issues}")
+                events.append(f"⚠️ Verification Failed: {verification.issues}")
+                yield {"type": "event", "data": events[-1]}
                 
                 # D. Reflect
                 reflection_prompt = f"""
@@ -259,7 +293,8 @@ class Orchestrator:
                     reflection = "Try a different approach."
                 
                 attempt.reflection = reflection
-                events.append(f"🤔 Reflection: {reflection}")
+                events.append(f"🧠 Reflection: {reflection}")
+                yield {"type": "event", "data": events[-1]}
                 ctx.attempts.append(attempt)
         
         last = ctx.attempts[-1] if ctx.attempts else None
@@ -277,6 +312,7 @@ class Orchestrator:
         # Only try to explain if we actually produced a mathematically plausible answer
         if not is_total_failure:
             events.append("🎓 Generating JEE Tutor Explanation...")
+            yield {"type": "event", "data": events[-1]}
             try:
                 ctx.explanation = self.explainer.explain(
                     problem=ctx.parsed.problem_text,
@@ -287,24 +323,27 @@ class Orchestrator:
                     code=target_code,
                 )
                 if not ctx.explanation.error:
-                    events.append(f"🎓 JEE Tutor Explanation generated (ExplainerAgent) — Chapter: {ctx.explanation.chapter_tag} [{ctx.explanation.difficulty}]")
+                    events.append(f"✅ JEE Tutor Explanation generated (ExplainerAgent) — Chapter: {ctx.explanation.chapter_tag} [{ctx.explanation.difficulty}]")
+                    yield {"type": "event", "data": events[-1]}
                 else:
                     events.append(f"⚠️ Explainer partial: {ctx.explanation.error}")
+                    yield {"type": "event", "data": events[-1]}
             except Exception as _e:
                 ctx.explanation = Explanation(error=str(_e))
                 events.append(f"⚠️ Explainer failed: {_e}")
+                yield {"type": "event", "data": events[-1]}
         else:
             ctx.explanation = None
-            events.append("⏭️ Skipped Explanation generation due to solver failure.")
+            events.append("⚠️ Skipped Explanation generation due to solver failure.")
+            yield {"type": "event", "data": events[-1]}
 
         # 6. Final Message UI Generation
         msg = ""
         
-        # State A: Verification Assistance Needed (Solver ran, answer output, but Verifier is unsure)
         if ctx.status != "verified" and last and getattr(last.verification, 'needs_hitl', False) and not is_total_failure:
             ctx.status = "verification_hitl"
             reasoning = strip_code_from_reasoning(target_reasoning)
-            msg = f"### Verification Assistance Needed ⚠️\n\nI've produced an answer, but I am not completely sure if it is correct.\n\n{reasoning}\n\n**Calculated Answer:** {target_answer}\n\n*Why I need help:* {', '.join(last.verification.issues)}\n\nPlease review and let me know if it's correct!"
+            msg = f"### Verification Assistance Needed\n\nI've produced an answer, but I am not completely sure if it is correct.\n\n{reasoning}\n\n**Calculated Answer:** {target_answer}\n\n*Why I need help:* {', '.join(last.verification.issues)}\n\nPlease review and let me know if it's correct!"
         
         # State B: Fully Verified
         elif ctx.status == "verified":
@@ -315,7 +354,7 @@ class Orchestrator:
                 
         # State C: Total Failure or Unverified
         else:
-            msg = f"### Solution (Unverified) ⚠️\n\nI struggled to mathematically verify this answer, so **please check it carefully and tell me if it is correct using the ✅ or ❌ buttons below!**\n\n"
+            msg = f"### Solution (Unverified)\n\nI struggled to mathematically verify this answer, so **please check it carefully and tell me if it is correct!**\n\n"
             reasoning = strip_code_from_reasoning(target_reasoning)
             if not reasoning:
                 reasoning = 'No reasoning available'
@@ -330,12 +369,14 @@ class Orchestrator:
         if target_solution and not is_total_failure:
             try:
                 events.append("Generating visual explanation...")
+                yield {"type": "event", "data": events[-1]}
                 deck = self.solver.solve_structured(
                     ctx.parsed.problem_text, 
                     context={"approach": target_reasoning or "Mathematical solution"}
                 )
             except Exception as e:
                 events.append(f"Visual generation failed: {e}")
+                yield {"type": "event", "data": events[-1]}
         
         # Build SolutionState from PipelineContext (structured storage)
         last_attempt = ctx.attempts[-1] if ctx.attempts else None
@@ -360,13 +401,18 @@ class Orchestrator:
         # Save solution to memory WITH deck AND solution_state and events
         self.solver.memory.add_assistant_message(msg, deck, solution_state, events)
 
-        return {
-            "response": msg,
-            "events": events,
-            "context": ctx,
-            "deck": deck,
-            "confidence": final_confidence,
-            "solution_state": solution_state
+        self.solver.memory.add_assistant_message(msg, deck, solution_state, events)
+
+        yield {
+            "type": "final",
+            "data": {
+                "response": msg,
+                "events": events,
+                "context": ctx,
+                "deck": deck,
+                "confidence": final_confidence,
+                "solution_state": solution_state
+            }
         }
 
     def _format_history(self, attempts: List[Attempt]) -> str:

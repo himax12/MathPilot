@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import InspectorPane from './components/InspectorPane'
 import { ActiveMessageProvider, useActiveMessage } from './components/ActiveMessageContext'
+import FeedbackDialog from './components/FeedbackDialog'
 import { api } from './lib/api'
 
 function MathPilotApp() {
@@ -11,7 +12,9 @@ function MathPilotApp() {
   const [messages, setMessages] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentEvent, setCurrentEvent] = useState<string | null>(null)
   const [pendingOcr, setPendingOcr] = useState<{ latex: string, problem_data: any, imageUrl?: string } | null>(null)
+  const [pendingFeedback, setPendingFeedback] = useState<{ problem: string, wrongAnswer: string } | null>(null)
 
   useEffect(() => {
     fetchSessions()
@@ -58,9 +61,10 @@ function MathPilotApp() {
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
     setError(null)
+    setCurrentEvent("Initializing...")
 
     try {
-      const data = await api.chat(text)
+      const data = await api.chatStream(text, setCurrentEvent)
       const assistantMsg = {
         role: "assistant",
         content: data.response,
@@ -75,7 +79,7 @@ function MathPilotApp() {
       fetchSessions()
     } catch (e: any) {
       setError(e?.message ?? "Failed to reach backend. Is the server running?")
-      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Could not get a response. Please try again." }])
+      setMessages(prev => [...prev, { role: "assistant", content: "Could not get a response. Please try again." }])
     } finally {
       setIsLoading(false)
     }
@@ -105,18 +109,27 @@ function MathPilotApp() {
 
   const handleConfirmOcr = async (ocrData: { latex: string, problem_data: any, imageUrl?: string }) => {
     setPendingOcr(null)
-    const preview = ocrData.latex.replace(/\s+/g, ' ').trim()
+    
+    // Convert \( \) to $ $ and \[ \] to $$ $$ so that remarkMath correctly detects it.
+    let cleanLatex = ocrData.latex
+      .replace(/\\\(/g, '$')
+      .replace(/\\\)/g, '$')
+      .replace(/\\\[/g, '$$$$')
+      .replace(/\\\]/g, '$$$$')
+      .trim();
+
     const userMsg = { 
       role: "user", 
-      content: `> ${preview.substring(0, 250)}${preview.length > 250 ? '…' : ''}`,
+      content: cleanLatex,
       imageUrl: ocrData.imageUrl
     }
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
     setError(null)
+    setCurrentEvent("Initialzing...")
 
     try {
-        const data = await api.chat({ latex: ocrData.latex, problem_data: ocrData.problem_data })
+        const data = await api.chatStream({ latex: ocrData.latex, problem_data: ocrData.problem_data }, setCurrentEvent)
         const assistantMsg = {
           role: "assistant",
           content: data.response,
@@ -131,12 +144,78 @@ function MathPilotApp() {
         fetchSessions()
     } catch (e: any) {
       setError(e?.message ?? "Failed to reach backend during reasoning.")
-      setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Could not get a response. Please try again." }])
+      setMessages(prev => [...prev, { role: "assistant", content: "Could not get a response. Please try again." }])
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleFeedbackPositive = async (msgIndex: number) => {
+    // We could make an API call to log positive feedback if needed.
+    // For now, simple toast / alert representation
+    console.log("Positive feedback registered for msg", msgIndex);
+    // You could use a toast library here, relying on console or alert as a basic visual indicator.
+  };
+
+  const handleFeedbackNegative = (msgIndex: number) => {
+    const msg = messages[msgIndex];
+    if (!msg || msg.role !== 'assistant') return;
+
+    // Find the closest preceding user message as the "problem"
+    let problemText = "Unknown Problem";
+    for (let i = msgIndex - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+            problemText = messages[i].content;
+            break;
+        }
+    }
+
+    // Try to extract a clean wrong answer from explanation/solution state if structured, otherwise fallback to message content
+    let wrongAns = "See above";
+    // Usually the answer is part of the final text or structured explanation
+    if (msg.explanation && msg.explanation.answer) {
+        wrongAns = msg.explanation.answer;
+    } else if (msg.content) {
+        // If content is short, use it, else truncate
+        wrongAns = msg.content.length < 100 ? msg.content : "See above";
+    }
+
+    setPendingFeedback({ problem: problemText, wrongAnswer: wrongAns });
+  };
+
+  const handleSubmitFeedback = async (correctAnswer: string, explanation: string) => {
+    if (!pendingFeedback) return;
+    const { problem, wrongAnswer } = pendingFeedback;
+    setPendingFeedback(null);
+
+    setIsLoading(true);
+    setCurrentEvent("Submitting feedback...");
+
+    try {
+        await api.submitFeedback({
+            problem,
+            wrong_answer: wrongAnswer,
+            correct_answer: correctAnswer,
+            explanation
+        });
+
+        // Implicitly send a retry message after feedback
+        const retryText = `Please re-solve this problem: ${problem}\n\nNote: Your previous answer (${wrongAnswer}) was incorrect. The correct answer is ${correctAnswer}. Keep this lesson in mind: ${explanation}`;
+        await handleSendMessage(retryText);
+    } catch (e: any) {
+        setError(e?.message ?? "Failed to submit feedback.");
+        setIsLoading(false);
+    }
+  };
+
+
+  const handleEditSubmit = async (msgIndex: number, newContent: string) => {
+    // Keep messages only up to (but not including) the edited message
+    // and then send the new content as a new message.
+    const newMessages = messages.slice(0, msgIndex);
+    setMessages(newMessages);
+    await handleSendMessage(newContent);
+  };
 
   const { activeMessageIndex, setActiveMessageIndex } = useActiveMessage()
 
@@ -163,6 +242,10 @@ function MathPilotApp() {
           onSendMessage={handleSendMessage}
           onUploadImage={handleUploadImage}
           isLoading={isLoading}
+          currentEvent={currentEvent}
+          onFeedbackPositive={handleFeedbackPositive}
+          onFeedbackNegative={handleFeedbackNegative}
+          onEditSubmit={handleEditSubmit}
         />
       </main>
 
@@ -212,6 +295,16 @@ function MathPilotApp() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Feedback Modal */}
+      {pendingFeedback && (
+        <FeedbackDialog
+          problem={pendingFeedback.problem}
+          wrongAnswer={pendingFeedback.wrongAnswer}
+          onSubmit={handleSubmitFeedback}
+          onCancel={() => setPendingFeedback(null)}
+        />
       )}
     </div>
   )

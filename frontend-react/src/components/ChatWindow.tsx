@@ -8,11 +8,19 @@ export default function ChatWindow({
   onSendMessage,
   onUploadImage,
   isLoading,
+  currentEvent,
+  onFeedbackPositive,
+  onFeedbackNegative,
+  onEditSubmit,
 }: {
   messages: any[];
   onSendMessage: (msg: string) => void;
   onUploadImage: (file: File) => void;
   isLoading: boolean;
+  currentEvent?: string | null;
+  onFeedbackPositive?: (msgIndex: number) => void;
+  onFeedbackNegative?: (msgIndex: number) => void;
+  onEditSubmit?: (msgIndex: number, newContent: string) => void;
 }) {
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -101,7 +109,12 @@ export default function ChatWindow({
                 onClick={() => setActiveMessageIndex(i)}
                 className={`cursor-pointer transition-all duration-300 rounded-3xl p-2 ${activeMessageIndex === i ? 'bg-primary/5 shadow-[0_0_30px_rgba(52,211,153,0.05)] ring-1 ring-primary/20' : 'hover:bg-secondary/30'}`}
               >
-                <MessageCard msg={msg} />
+                <MessageCard 
+                  msg={msg} 
+                  onFeedbackPositive={onFeedbackPositive ? () => onFeedbackPositive(i) : undefined}
+                  onFeedbackNegative={onFeedbackNegative ? () => onFeedbackNegative(i) : undefined}
+                  onEditSubmit={onEditSubmit ? (newContent) => onEditSubmit(i, newContent) : undefined}
+                />
               </div>
             ))}
 
@@ -117,7 +130,7 @@ export default function ChatWindow({
                   <span className="text-[11px] font-medium tracking-wide uppercase px-1 text-primary/70 text-left">MathPilot</span>
                   <div className="flex items-center gap-2 px-5 py-4 text-muted-foreground/60 text-sm font-light">
                     <Loader2 size={14} className="animate-spin text-primary/60 shrink-0" />
-                    <span>Thinking…</span>
+                    <span>{currentEvent || "Thinking…"}</span>
                   </div>
                 </div>
               </div>

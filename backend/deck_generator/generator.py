@@ -243,7 +243,7 @@ class DeckGenerator:
         if intuition:
             slides.append(Slide(
                 slide_type="intuition",
-                title="💡 Key Insight",
+                title="Key Insight",
                 content=html.unescape(intuition)
             ))
         
@@ -274,7 +274,7 @@ class DeckGenerator:
             
             slides.append(Slide(
                 slide_type="visualization",
-                title="📊 Visual Explanation",
+                title="Visual Explanation",
                 content=html.unescape(visualization) if visualization else "",
                 diagram=diagram
             ))
@@ -283,7 +283,7 @@ class DeckGenerator:
         if answer:
             slides.append(Slide(
                 slide_type="answer",
-                title="🎯 Final Answer",
+                title="Final Answer",
                 content=html.unescape(answer)
             ))
         

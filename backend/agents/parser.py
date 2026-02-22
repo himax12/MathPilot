@@ -150,15 +150,36 @@ Now parse the given problem.
     def _extract_parsed_data(self, response_text: str) -> Dict:
         """Extract JSON from Gemini response."""
         import json
+        import re
         
         try:
-            # Remove markdown
-            cleaned = response_text.replace("```json", "").replace("```", "").strip()
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-            # Fallback: return empty structure
+            # Extract everything between curly braces to handle markdown and extra text
+            match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if not match:
+                raise ValueError("No JSON object found")
+            cleaned = match.group(0)
+            
+            try:
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                # Handle common LLM JSON hallucination: unescaped LaTeX backslashes 
+                # e.g., "\alpha" instead of "\\alpha"
+                def escape_latex(m):
+                    char = m.group(1)
+                    # Standard JSON escape characters
+                    if char in ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']:
+                        return '\\' + char
+                    # Non-standard (LaTeX) -> double escape
+                    return '\\\\' + char
+                
+                fixed_json = re.sub(r'\\(.)', escape_latex, cleaned)
+                return json.loads(fixed_json)
+                
+        except Exception:
+            # Fallback: return structure that triggers clarification but safely
+            clean_err = response_text.replace("```json", "").replace("```", "").strip()
             return {
-                "problem_statement": response_text,
+                "problem_statement": clean_err,
                 "question": "Unknown",
                 "domain": "unknown",
                 "approach": ""

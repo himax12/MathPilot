@@ -159,7 +159,7 @@ class MathOCR:
   "given_values": ["equation1", "equation2", ...],
   "question": "What is being asked (find X, calculate Y, etc.)",
   "problem_type_hint": "algebra/calculus/probability/geometry/etc.",
-  "confidence": 0.95 // Explicitly rate your extraction confidence from 0.0 to 1.0 based on image clarity
+  "confidence": 0.95 // Rate your extraction confidence from 0.0 to 1.0 based on three criteria: 1) Image Clarity, 2) Mathematical Syntax (matching brackets, logical operators), 3) Missing Context (is the problem cut off?). Subtract -0.1 for every issue found.
 }
 
 **Examples**:

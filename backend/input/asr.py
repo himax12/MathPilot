@@ -31,11 +31,10 @@ class MathASR:
         try:
             self.client = SpeechClient()
             self.project_id = config.GCP_PROJECT_ID
-            # Use 'global' location for standard STT V2
-            self.location = "global"
+            self.location = config.STT_LOCATION
+            self.recognizer_id = config.STT_RECOGNIZER
             
-            # Use the default recognizer (underscore means default)
-            self.recognizer_path = f"projects/{self.project_id}/locations/{self.location}/recognizers/_"
+            self.recognizer_path = f"projects/{self.project_id}/locations/{self.location}/recognizers/{self.recognizer_id}"
         except Exception as e:
             print(f"Failed to init Speech Client: {e}")
             self.client = None
@@ -65,7 +64,7 @@ class MathASR:
             # Streamlit audio_input returns WebM/Opus format
             config_req = cloud_speech.RecognitionConfig(
                 # Let the API auto-detect the audio encoding
-                auto_decoding_config={},
+                auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
                 language_codes=["en-US"],
                 model="long",
             )

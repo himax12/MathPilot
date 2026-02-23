@@ -1,0 +1,25 @@
+.gcloudignore
+.git
+.gitignore
+
+# Frontend local bloat
+frontend-react/node_modules/
+frontend-react/dist/
+frontend-react/.env.local
+
+# Python local bloat
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Local databases
+*.sqlite
+*.sqlite3
+math_mentor.db
+
+# Other
+.streamlit/
+.vscode/
+.idea/
+ts_errors.log

@@ -19,7 +19,7 @@ The application is structured as a pipeline of specialized agents coordinated by
 
 ### 1. Input Processing Layer
 *   **OCR Engine**: Uses Google Gemini Vision (Program-of-Thought prompting) to transcribe mathematical images into structured text. Includes transparency handling and contrast optimization.
-*   **ASR Engine**: Uses Gemini Audio models to transcribe spoken mathematical queries, converting natural speech into formal problem statements.
+*   **ASR Engine**: Uses Google Cloud Speech-to-Text v2 (Chirp 2) to transcribe spoken mathematical queries with state-of-the-art accuracy, converting natural speech into formal problem statements.
 
 ### 2. Cognitive Layer (The Agents)
 *   **Parser Agent**: Normalizes raw input into a structured schema, identifying variables, constraints, and specifically "what needs to be solved". Flags ambiguous input for user clarification.
@@ -100,8 +100,9 @@ flowchart TD
 ## Setup & Installation
 
 ### Prerequisites
-*   Python 3.10 or higher
-*   Google Cloud API Key (for Gemini)
+*   Python 3.11 or higher
+*   Google Gemini API Key (required)
+*   Google Cloud credentials (optional, for audio transcription)
 
 ### Installation
 
@@ -114,17 +115,39 @@ flowchart TD
 2.  **Install dependencies**
     It is recommended to use a virtual environment.
     ```bash
+    # Using uv (recommended)
+    uv sync
+    
+    # Or using pip
     pip install -r requirements.txt
     ```
 
 3.  **Configure Environment**
-    Create a `.env` file in the root directory:
+    Copy `.env.example` to `.env` and configure:
+    ```bash
+    cp .env.example .env
+    ```
+    
+    **Minimum configuration (text input only):**
     ```env
-    GOOGLE_API_KEY=your_api_key_here
+    GEMINI_API_KEY=your_gemini_api_key_here
+    ```
+    
+    **Full configuration (audio + vision):**
+    ```env
+    GEMINI_API_KEY=your_gemini_api_key_here
+    GOOGLE_APPLICATION_CREDENTIALS=path/to/gcp-credentials.json
+    GCP_PROJECT_ID=your_project_id
+    STT_LOCATION=global
+    STT_RECOGNIZER=_
     ```
 
 4.  **Run the Application**
     ```bash
+    # Using uv
+    uv run streamlit run frontend/app.py
+    
+    # Or with venv activated
     streamlit run frontend/app.py
     ```
 

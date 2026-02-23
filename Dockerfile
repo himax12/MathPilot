@@ -1,7 +1,15 @@
-# Start with a lightweight Python image
+# --- Stage 1: Build the React Frontend ---
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend-react
+COPY frontend-react/package*.json ./
+RUN npm install
+COPY frontend-react/ ./
+RUN npm run build
+
+# --- Stage 2: Final Image ---
 FROM python:3.11-slim
 
-# Install system dependencies for OpenCV and Audio
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
@@ -11,31 +19,33 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv compiler tool
+# Install uv catalyst tool
 COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
 
 # Set working directory
 WORKDIR /app
 
 # Copy dependency files
-# Note: we use pyproject.toml and uv.lock as the source of truth
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv sync
-# This creates a virtual environment at /app/.venv
 RUN uv sync --frozen --no-cache
 
 # Copy the rest of the application
 COPY . .
 
-# Expose the port
+# Copy the built frontend into backend/static for serving
+COPY --from=frontend-builder /app/frontend-react/dist ./backend/static
+
+# Deployment environment variables
 ENV PORT=8080
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8080
 
-# Healthcheck
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+# Healthcheck targeting the API
+HEALTHCHECK CMD curl --fail http://localhost:8080/api/sessions || exit 1
 
-# Launch the app
-CMD ["streamlit", "run", "frontend/app.py", "--server.port", "8080", "--server.address", "0.0.0.0"]
+# Launch the FastAPI app with uvicorn
+# Cloud Run sets the PORT env var; we must listen on it.
+CMD ["sh", "-c", "uvicorn backend.api:app --host 0.0.0.0 --port ${PORT:-8080}"]

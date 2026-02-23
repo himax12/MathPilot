@@ -111,6 +111,7 @@ class ConversationMemory(BaseModel):
     active_problem: Optional[str] = Field(None)
     active_answer: Optional[str] = Field(None)
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = Field(None)
     
     # Private field for episodic memory engine (not serialized by Pydantic)
     _episodic: Optional[object] = None
@@ -151,10 +152,20 @@ class ConversationMemory(BaseModel):
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     session_id TEXT PRIMARY KEY,
+                    user_id TEXT,
                     title TEXT,
                     active_problem TEXT,
                     active_answer TEXT,
                     last_updated REAL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE,
+                    name TEXT,
+                    picture TEXT,
+                    created_at REAL
                 )
             """)
             
@@ -175,6 +186,18 @@ class ConversationMemory(BaseModel):
                 conn.execute("ALTER TABLE messages ADD COLUMN events_json TEXT")
             except sqlite3.OperationalError:
                 pass # Column likely already exists
+
+            # Migration: Add user_id column to conversations if it doesn't exist
+            try:
+                conn.execute("ALTER TABLE conversations ADD COLUMN user_id TEXT")
+            except sqlite3.OperationalError:
+                pass
+            
+            # Create index for user_id for faster lookups
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id)")
+            except sqlite3.OperationalError:
+                pass
 
     def _load_history(self):
         """Load history from the database for the current session (or most recent)."""
@@ -234,6 +257,18 @@ class ConversationMemory(BaseModel):
             print(f"Failed to restore session: {e}")
         return False
 
+    def add_user_info(self, user_id: str, email: str, name: str, picture: str):
+        """Store or update user info."""
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("""
+                INSERT INTO users (user_id, email, name, picture, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    email=excluded.email,
+                    name=excluded.name,
+                    picture=excluded.picture
+            """, (user_id, email, name, picture, time.time()))
+
     def add_user_message(self, content: str) -> None:
         """Add a user message to the history and DB."""
         msg = ChatMessage(role="user", content=content)
@@ -281,8 +316,8 @@ class ConversationMemory(BaseModel):
         # Update conversation state
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO conversations (session_id, active_problem, active_answer, last_updated) VALUES (?, ?, ?, ?)",
-                (self.session_id, problem, answer, time.time())
+                "INSERT OR REPLACE INTO conversations (session_id, user_id, active_problem, active_answer, last_updated) VALUES (?, ?, ?, ?, ?)",
+                (self.session_id, self.user_id, problem, answer, time.time())
             )
 
     def clear(self) -> None:
@@ -347,12 +382,16 @@ class ConversationMemory(BaseModel):
         except Exception:
             return ""
 
-    def get_all_sessions(self) -> List[dict]:
-        """Retrieve all saved sessions metadata."""
+    def get_all_sessions(self, user_id: Optional[str] = None) -> List[dict]:
+        """Retrieve all saved sessions metadata for a user."""
+        target_user = user_id or self.user_id
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
-                cursor = conn.execute("SELECT session_id, title, last_updated FROM conversations ORDER BY last_updated DESC")
+                cursor = conn.execute(
+                    "SELECT session_id, title, last_updated FROM conversations WHERE user_id = ? ORDER BY last_updated DESC",
+                    (target_user,)
+                )
                 return [dict(row) for row in cursor.fetchall()]
         except Exception as e:
             print(f"Error fetching sessions: {e}")

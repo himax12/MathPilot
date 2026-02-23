@@ -16,46 +16,32 @@ if (-not (Get-Command "gcloud" -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# 2. Check Login Status
-$auth = gcloud auth list --filter=status:ACTIVE --format="value(account)"
-if (-not $auth) {
-    Write-Host "⚠️  You are not logged in." -ForegroundColor Yellow
-    Write-Host "Opening login window..."
-    gcloud auth login
-}
+# Math Mentor unified deployment script
+$PROJECT_ID = "firstproject-c5ac2"
+$REGION = "us-central1"
+$SERVICE_NAME = "math-mentor"
 
-# 3. Project Setup
-$projectId = Read-Host "Enter a unique Project ID (or press Enter for 'math-mentor-demo-01')"
-if (-not $projectId) { $projectId = "math-mentor-demo-01" }
+Write-Host "--- Deploying MathPilot (Unified Stack) to Cloud Run ---" -ForegroundColor Cyan
 
-Write-Host "Creating/Selecting Project '$projectId'..." -ForegroundColor Green
-# Try create, ignore if exists
-gcloud projects create $projectId --name="Math Mentor" 2>$null
-gcloud config set project $projectId
+# 1. Login & Project Setup
+gcloud auth login
+gcloud config set project $PROJECT_ID
 
-# 4. Enable APIs
-Write-Host "Enabling Cloud Run & Build APIs (this may take a minute)..." -ForegroundColor Green
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
-
-# 5. Get API Key
-$apiKey = $env:GOOGLE_API_KEY
-if (-not $apiKey) {
+# 2. Get GEMINI_API_KEY if not in env
+if (-not $env:GEMINI_API_KEY) {
     if (Test-Path ".env") {
-        Get-Content ".env" | ForEach-Object {
-            if ($_ -match "GOOGLE_API_KEY=(.*)") { $apiKey = $matches[1] }
-        }
+        $env:GEMINI_API_KEY = (Get-Content .env | Select-String "GEMINI_API_KEY=").ToString().Split("=")[1].Trim()
+    }
+    if (-not $env:GEMINI_API_KEY) {
+        $env:GEMINI_API_KEY = Read-Host "Please enter your GEMINI_API_KEY"
     }
 }
-if (-not $apiKey) {
-    $apiKey = Read-Host "Enter your Google Gemini API Key"
-}
 
-# 6. Deploy
-Write-Host "Building and Deploying to Cloud Run..." -ForegroundColor Cyan
-gcloud run deploy math-mentor `
+# 3. Deploy
+gcloud run deploy $SERVICE_NAME `
     --source . `
-    --region us-central1 `
+    --region $REGION `
     --allow-unauthenticated `
-    --set-env-vars="GOOGLE_API_KEY=$apiKey"
+    --set-env-vars="GEMINI_API_KEY=$($env:GEMINI_API_KEY)"
 
-Write-Host "`n✅ Deployment Complete!" -ForegroundColor Green
+Write-Host "--- Deployment Complete ---" -ForegroundColor Green

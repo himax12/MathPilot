@@ -27,8 +27,8 @@ class BaseAgent:
         Args:
             model_name: Gemini model (uses config default if not specified)
         """
-        if not config.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY not found in environment")
+        if not config.GEMINI_API_KEY and not config.USE_VERTEX_AI:
+            raise ValueError("GEMINI_API_KEY or USE_VERTEX_AI configuration not found")
         
         # Store API key and cache client instance
         self._api_key = config.GEMINI_API_KEY
@@ -40,7 +40,15 @@ class BaseAgent:
     def client(self):
         """Lazy-init and cache client."""
         if self._client_instance is None:
-            self._client_instance = genai.Client(api_key=self._api_key)
+            if config.USE_VERTEX_AI:
+                self.logger.info(f"Initializing Vertex AI client for project {config.GCP_PROJECT_ID}")
+                self._client_instance = genai.Client(
+                    vertexai=True,
+                    project=config.GCP_PROJECT_ID,
+                    location=config.GCP_LOCATION
+                )
+            else:
+                self._client_instance = genai.Client(api_key=self._api_key)
         return self._client_instance
     
     def _call_llm(self, prompt: str, **kwargs) -> str:

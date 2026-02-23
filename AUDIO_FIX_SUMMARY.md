@@ -4,56 +4,68 @@
 
 ## Issues Fixed
 
-### 1. **Import Error in backend/input/__init__.py**
+### 1. **Import Error in backend/input/**init**.py**
+
 **Problem:** The module was trying to import `MathOCR` first, which depends on `google-cloud-vision`. If vision was not installed, the entire input module would fail to load, including ASR.
 
-**Solution:** 
+**Solution:**
+
 - Made both OCR and ASR imports optional with try-except blocks
 - Changed import order to import `MathNormalizer` first (has no dependencies)
 - Dynamically build `__all__` based on what's available
 
 **Files Changed:**
-- [backend/input/__init__.py](backend/input/__init__.py)
+
+- [backend/input/**init**.py](backend/input/__init__.py)
 
 ---
 
 ### 2. **Google Cloud Speech API Configuration**
+
 **Problem:** The ASR module was using incorrect API call patterns:
+
 - `auto_decoding_config={}` instead of proper object instantiation
 - Location was set to `us-central1` instead of `global` for default recognizer
 - Recognizer ID was hardcoded to `chirp-2-recognizer` instead of using default `_`
 
 **Solution:**
-- Fixed `auto_decoding_config` to use `cloud_speech.AutoDetectDecodingConfig()` 
+
+- Fixed `auto_decoding_config` to use `cloud_speech.AutoDetectDecodingConfig()`
 - Updated default `STT_LOCATION` to `global` for compatibility
 - Updated default `STT_RECOGNIZER` to `_` (default recognizer)
 - Added proper error handling for empty audio
 
 **Files Changed:**
+
 - [backend/input/asr.py](backend/input/asr.py) - Line 67
 - [backend/config.py](backend/config.py) - Lines 40-42
 
 ---
 
 ### 3. **Documentation Updates**
+
 **Problem:** Setup instructions were incomplete and didn't document audio configuration.
 
 **Solution:**
+
 - Updated `.env.example` with correct audio settings and comments
 - Enhanced `README.md` with detailed setup instructions for audio
 - Clarified that audio is optional and requires GCP credentials
 - Added information about using `uv` package manager
 
 **Files Changed:**
+
 - [.env.example](.env.example)
 - [README.md](README.md) - Lines 100-140
 
 ---
 
 ### 4. **Testing Infrastructure**
+
 **Problem:** No comprehensive test for the complete audio pipeline.
 
 **Solution:**
+
 - Created new comprehensive test suite: `tests/test_audio_pipeline.py`
 - Tests cover:
   - ASR initialization
@@ -62,6 +74,7 @@
 - All tests passing ✅
 
 **Files Created:**
+
 - [tests/test_audio_pipeline.py](tests/test_audio_pipeline.py)
 
 ---
@@ -72,7 +85,7 @@
 ✅ **Math Normalizer** - Spoken math phrases convert to symbolic notation  
 ✅ **Error Handling** - Gracefully handles empty/invalid audio  
 ✅ **Frontend Integration** - Streamlit helper functions work with fixed ASR  
-✅ **No Import Errors** - Module loads correctly even without google-cloud packages  
+✅ **No Import Errors** - Module loads correctly even without google-cloud packages
 
 ---
 
@@ -81,6 +94,7 @@
 ### 1. Setup (One-time)
 
 1. Install google-cloud-speech (already in requirements.txt):
+
    ```bash
    uv sync
    ```
@@ -111,11 +125,13 @@
 ## Technical Details
 
 ### API Used
+
 - **Google Cloud Speech-to-Text V2** (Chirp 2 model)
 - Version: `google-cloud-speech==2.36.1`
 - Why: State-of-the-art accuracy for technical terms
 
 ### Audio Flow
+
 ```
 User Recording (WebM/Opus from Streamlit)
   ↓
@@ -133,6 +149,7 @@ Orchestrator (Parser → Solver → etc.)
 ```
 
 ### Key Files
+
 - `backend/input/asr.py` - Speech-to-Text integration
 - `backend/input/normalizer.py` - Math phrase normalization
 - `frontend/helper_inputs.py` - Streamlit UI for audio

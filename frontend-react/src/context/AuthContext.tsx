@@ -49,13 +49,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credential: string) => {
     try {
+      console.log('AuthContext: Calling backend auth...');
       const response = await api.authGoogle(credential);
+      console.log('AuthContext: Backend responded:', {
+        hasToken: !!response.access_token,
+        hasUser: !!response.user,
+        userId: response.user?.id
+      });
+      
+      if (!response.access_token || !response.user) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Update state
       setToken(response.access_token);
       setUser(response.user);
+      
+      // Persist to localStorage
       localStorage.setItem('auth_token', response.access_token);
       localStorage.setItem('auth_user', JSON.stringify(response.user));
-    } catch (error) {
-      console.error('Login failed:', error);
+      
+      console.log('AuthContext: Login complete, token saved');
+    } catch (error: any) {
+      console.error('AuthContext: Login failed:', error);
+      // Clear any partial state
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
       throw error;
     }
   };

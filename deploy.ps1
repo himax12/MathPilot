@@ -1,47 +1,55 @@
-<#
-.SYNOPSIS
-    Automated Deployment Script for Math Mentor
-.DESCRIPTION
-    Deploys the Streamlit application to Google Cloud Run using the gcloud CLI.
-    Handles project creation, API enabling, and container deployment.
-#>
-
-Write-Host "🚀 Math Mentor - Automated Deployment" -ForegroundColor Cyan
-Write-Host "======================================"
-
-# 1. Check for gcloud
-if (-not (Get-Command "gcloud" -ErrorAction SilentlyContinue)) {
-    Write-Error "Google Cloud CLI (gcloud) is not installed."
-    Write-Host "Please install it from: https://cloud.google.com/sdk/docs/install"
-    exit 1
-}
-
-# Math Mentor unified deployment script
+# Math Mentor Deployment Script
 $PROJECT_ID = "firstproject-c5ac2"
 $REGION = "us-central1"
 $SERVICE_NAME = "math-mentor"
 
-Write-Host "--- Deploying MathPilot (Unified Stack) to Cloud Run ---" -ForegroundColor Cyan
+Write-Host "Deploying MathPilot to Cloud Run" -ForegroundColor Cyan
 
-# 1. Login & Project Setup
+# Check for gcloud
+if (-not (Get-Command "gcloud" -ErrorAction SilentlyContinue)) {
+    Write-Error "Google Cloud CLI (gcloud) is not installed."
+    exit 1
+}
+
+# Login & Project Setup
 gcloud auth login
 gcloud config set project $PROJECT_ID
 
-# 2. Get GEMINI_API_KEY if not in env
-if (-not $env:GEMINI_API_KEY) {
-    if (Test-Path ".env") {
-        $env:GEMINI_API_KEY = (Get-Content .env | Select-String "GEMINI_API_KEY=").ToString().Split("=")[1].Trim()
-    }
-    if (-not $env:GEMINI_API_KEY) {
-        $env:GEMINI_API_KEY = Read-Host "Please enter your GEMINI_API_KEY"
+# Load environment variables from .env
+$envVars = @{}
+if (Test-Path ".env") {
+    Get-Content .env | ForEach-Object {
+        if ($_ -match '^([^#=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim().Trim('"')
+            $envVars[$key] = $value
+        }
     }
 }
 
-# 3. Deploy
-gcloud run deploy $SERVICE_NAME `
-    --source . `
-    --region $REGION `
-    --allow-unauthenticated `
-    --set-env-vars="GEMINI_API_KEY=$($env:GEMINI_API_KEY)"
+# Prompt for missing required vars
+if (-not $envVars["GEMINI_API_KEY"]) {
+    $envVars["GEMINI_API_KEY"] = Read-Host "Please enter your GEMINI_API_KEY"
+}
+if (-not $envVars["GOOGLE_CLIENT_ID"] -or $envVars["GOOGLE_CLIENT_ID"] -eq "your_google_oauth_client_id_here") {
+    Write-Host "WARNING: GOOGLE_CLIENT_ID not found in .env" -ForegroundColor Yellow
+    Write-Host "Get it from: https://console.cloud.google.com/apis/credentials?project=$PROJECT_ID" -ForegroundColor Yellow
+    $envVars["GOOGLE_CLIENT_ID"] = Read-Host "Please enter your GOOGLE_CLIENT_ID"
+}
 
-Write-Host "--- Deployment Complete ---" -ForegroundColor Green
+# Build substitutions string for Cloud Build
+$substitutions = ($envVars.GetEnumerator() | ForEach-Object { 
+    "_$($_.Key.ToUpper())=$($_.Value)" 
+}) -join ","
+
+Write-Host "Deploying with configuration:" -ForegroundColor Cyan
+$envVars.Keys | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+
+# Deploy using Cloud Build with substitutions
+Write-Host "Starting Cloud Build deployment..." -ForegroundColor Cyan
+gcloud builds submit `
+    --config=cloudbuild.yaml `
+    --substitutions="$substitutions" `
+    --region=$REGION
+
+Write-Host "Deployment Complete" -ForegroundColor Green

@@ -10,6 +10,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
+import { UsageBadge } from "./UsageBadge";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, User as UserIcon } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default function Sidebar({
   onDeleteSession,
   isMobileOpen,
   onMobileClose,
+  onUpgradeClick,
 }: {
   sessions: any[];
   currentSessionId: string | null;
@@ -31,6 +33,7 @@ export default function Sidebar({
   onDeleteSession: (id: string) => void;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  onUpgradeClick?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const { user, logout } = useAuth();
@@ -277,19 +280,19 @@ export default function Sidebar({
                 </button>
               </div>
             )}
+
+            {/* Usage Badge */}
+            <div className="mb-4">
+              <UsageBadge onUpgradeClick={onUpgradeClick} />
+            </div>
+
             <div className="p-3 text-center">
               <div className="text-xs text-muted-foreground font-light mb-0.5">
                 Powered by
               </div>
-              <div className="font-semibold text-sm text-foreground tracking-tight mb-3">
+              <div className="font-semibold text-sm text-foreground tracking-tight">
                 Agentic RAG
               </div>
-              <button className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 mx-auto group">
-                Upgrade to Pro{" "}
-                <span className="group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-              </button>
             </div>
           </div>
         )}

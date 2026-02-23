@@ -57,6 +57,15 @@ except Exception as e:
     logger.warning(f"⚠️  ASR init failed (non-fatal): {e}")
     asr_handler = None
 
+try:
+    logger.info("Importing Rate Limiter...")
+    from backend.rate_limiter import rate_limiter, SubscriptionTier
+    logger.info("✅ Rate Limiter imported OK")
+except Exception as e:
+    logger.critical(f"❌ FATAL: Could not import Rate Limiter: {e}")
+    logger.critical(traceback.format_exc())
+    raise
+
 # ─── FastAPI App ───────────────────────────────────────────────────────────────
 app = FastAPI(title="MathPilot API")
 
@@ -158,14 +167,31 @@ def _serialize_dict(obj):
 
 @app.post("/api/auth/google")
 def auth_google(request: AuthGoogleRequest):
+    logger.info(f"=== Google Auth Request Received ===")
+    logger.info(f"Credential length: {len(request.credential) if request.credential else 0}")
+    
+    if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == "your_google_oauth_client_id_here":
+        logger.error("⚠️  GOOGLE_CLIENT_ID not configured in environment variables")
+        logger.error(f"Current value: {GOOGLE_CLIENT_ID}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Server configuration error: GOOGLE_CLIENT_ID not set. Please configure OAuth credentials."
+        )
+    
+    logger.debug(f"Verifying Google token (Client ID: {GOOGLE_CLIENT_ID[:20]}...)")
     idinfo = verify_google_token(request.credential)
+    
     if not idinfo:
-        raise HTTPException(status_code=400, detail="Invalid Google token")
+        logger.error("❌ Invalid Google token received")
+        logger.error(f"Token verification failed for Client ID: {GOOGLE_CLIENT_ID[:20]}...")
+        raise HTTPException(status_code=400, detail="Invalid Google token. Token verification failed.")
     
     user_id = idinfo['sub']
     email = idinfo.get('email')
     name = idinfo.get('name')
     picture = idinfo.get('picture')
+    
+    logger.info(f"✅ User authenticated: {email} ({user_id})")
     
     # Save user info to DB
     orchestrator.solver.memory.add_user_info(user_id, email, name, picture)
@@ -187,8 +213,25 @@ def auth_google(request: AuthGoogleRequest):
 @app.post("/api/chat")
 def chat(request: ChatRequest, user: dict = Depends(get_current_user)):
     user_id = user["sub"]
+    
+    # Rate limit check
+    allowed, limit_info = rate_limiter.check_rate_limit(user_id)
+    if not allowed:
+        logger.warning(f"Rate limit exceeded for user {user_id}: {limit_info['used_today']}/{limit_info['daily_limit']}")
+        raise HTTPException(
+            status_code=429, 
+            detail={
+                "error": "Rate limit exceeded",
+                "message": f"You've used {limit_info['used_today']} of {limit_info['daily_limit']} daily prompts.",
+                "limit_info": limit_info
+            }
+        )
+    
+    # Log usage
+    rate_limiter.log_usage(user_id, endpoint="/api/chat")
+    
     orchestrator.solver.memory.user_id = user_id
-    logger.info(f"POST /api/chat — user: {user_id}, message type: {type(request.message).__name__}, preview: {str(request.message)[:80]}")
+    logger.info(f"POST /api/chat — user: {user_id}, usage: {limit_info['used_today']}/{limit_info['daily_limit']}, message type: {type(request.message).__name__}, preview: {str(request.message)[:80]}")
     
     def generate():
         try:
@@ -368,6 +411,96 @@ async def transcribe_audio(file: UploadFile = File(...), user: dict = Depends(ge
         logger.error(f"❌ /api/asr failed: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Billing & Subscription Routes ────────────────────────────────────────────
+
+@app.get("/api/billing/plans")
+def get_plans():
+    """Get all available subscription plans."""
+    return rate_limiter.get_all_plans()
+
+
+@app.get("/api/billing/usage")
+def get_usage(user: dict = Depends(get_current_user)):
+    """Get current user's usage and subscription info."""
+    user_id = user["sub"]
+    logger.debug(f"GET /api/billing/usage — user: {user_id}")
+    
+    try:
+        allowed, limit_info = rate_limiter.check_rate_limit(user_id)
+        subscription_info = rate_limiter.get_subscription_info(user_id)
+        
+        return {
+            "allowed": allowed,
+            "limit_info": limit_info,
+            "subscription": subscription_info
+        }
+    except Exception as e:
+        logger.error(f"❌ /api/billing/usage failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/billing/upgrade")
+def upgrade_plan(tier: str, user: dict = Depends(get_current_user)):
+    """
+    Upgrade to a new subscription tier.
+    
+    NOTE: This is a simplified endpoint. In production, integrate with Stripe:
+    1. Create Stripe checkout session
+    2. User completes payment
+    3. Stripe webhook confirms payment
+    4. Then call rate_limiter.upgrade_subscription()
+    """
+    user_id = user["sub"]
+    logger.info(f"POST /api/billing/upgrade — user: {user_id}, tier: {tier}")
+    
+    try:
+        # Validate tier
+        if tier not in [t.value for t in SubscriptionTier]:
+            raise HTTPException(status_code=400, detail="Invalid subscription tier")
+        
+        target_tier = SubscriptionTier(tier)
+        
+        # For demo purposes, allow direct upgrade (in production, require payment first)
+        success = rate_limiter.upgrade_subscription(user_id, target_tier)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Successfully upgraded to {target_tier.value} plan",
+                "subscription": rate_limiter.get_subscription_info(user_id)
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Upgrade failed")
+            
+    except Exception as e:
+        logger.error(f"❌ /api/billing/upgrade failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/billing/cancel")
+def cancel_subscription(user: dict = Depends(get_current_user)):
+    """Cancel subscription and downgrade to free tier."""
+    user_id = user["sub"]
+    logger.info(f"POST /api/billing/cancel — user: {user_id}")
+    
+    try:
+        success = rate_limiter.cancel_subscription(user_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": "Subscription cancelled. Downgraded to Free plan.",
+                "subscription": rate_limiter.get_subscription_info(user_id)
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Cancellation failed")
+            
+    except Exception as e:
+        logger.error(f"❌ /api/billing/cancel failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Serve static files from the built React app (dist folder)
 # We expect the 'dist' contents to be placed in backend/static during build

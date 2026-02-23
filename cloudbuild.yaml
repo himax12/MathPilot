@@ -1,0 +1,55 @@
+steps:
+  # Build the Docker image with build args
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "--build-arg"
+      - "VITE_GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}"
+      - "--build-arg"
+      - "VITE_API_URL=/api"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/math-mentor:$BUILD_ID"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/math-mentor:latest"
+      - "."
+
+  # Push the image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/$PROJECT_ID/math-mentor:$BUILD_ID"
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      - "run"
+      - "deploy"
+      - "math-mentor"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/math-mentor:$BUILD_ID"
+      - "--region"
+      - "us-central1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--set-env-vars"
+      - "GEMINI_API_KEY=${_GEMINI_API_KEY},GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},USE_VERTEX_AI=${_USE_VERTEX_AI},GCP_PROJECT_ID=${_GCP_PROJECT_ID},GCP_LOCATION=${_GCP_LOCATION},GEMINI_MODEL_ID=${_GEMINI_MODEL_ID},GEMINI_VISION_MODEL=${_GEMINI_VISION_MODEL},JWT_SECRET=${_JWT_SECRET},APP_TITLE=${_APP_TITLE},DECK_THEME=${_DECK_THEME},EXECUTOR_TIMEOUT=${_EXECUTOR_TIMEOUT}"
+
+images:
+  - "gcr.io/$PROJECT_ID/math-mentor:$BUILD_ID"
+  - "gcr.io/$PROJECT_ID/math-mentor:latest"
+
+substitutions:
+  _GEMINI_API_KEY: ""
+  _GOOGLE_CLIENT_ID: ""
+  _USE_VERTEX_AI: "true"
+  _GCP_PROJECT_ID: "firstproject-c5ac2"
+  _GCP_LOCATION: "us-central1"
+  _GEMINI_MODEL_ID: "gemini-2.5-flash-image"
+  _GEMINI_VISION_MODEL: "gemini-2.5-flash"
+  _JWT_SECRET: "math-pilot-super-secret-key-123"
+  _APP_TITLE: "Math Mentor"
+  _DECK_THEME: "dark"
+  _EXECUTOR_TIMEOUT: "5"
+
+timeout: 1800s

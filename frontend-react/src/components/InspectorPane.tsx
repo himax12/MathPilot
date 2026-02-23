@@ -35,7 +35,7 @@ export default function InspectorPane({
             onClick={onClose}
             className="p-1.5 rounded text-muted-foreground/50 hover:bg-white/5 hover:text-foreground transition-all"
           >
-            <X size={18} md:size={16} strokeWidth={1.5} />
+            <X size={18} strokeWidth={1.5} />
           </button>
         </div>
 

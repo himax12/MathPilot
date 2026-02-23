@@ -1,0 +1,21 @@
+# ⚠️ QUICK SETUP GUIDE ⚠️
+#
+# Your Google OAuth is NOT configured! Follow these steps:
+#
+# 1. Go to: https://console.cloud.google.com/apis/credentials?project=firstproject-c5ac2
+# 2. Create OAuth 2.0 Client ID (Web application)
+# 3. Add these origins: http://localhost:5173, http://localhost:8000, https://math-mentor-933543570439.us-central1.run.app
+# 4. Copy your Client ID (format: 123456-abc.apps.googleusercontent.com)
+# 5. Replace BOTH lines below with your actual Client ID
+# 6. Save this file
+# 7. Restart your backend server
+
+# Backend OAuth Client ID
+GOOGLE_CLIENT_ID=PASTE_YOUR_CLIENT_ID_HERE
+
+# Frontend OAuth Client ID (MUST BE THE SAME)
+VITE_GOOGLE_CLIENT_ID=PASTE_YOUR_CLIENT_ID_HERE
+
+# After fixing, run:
+# Backend: cd .. && .venv\Scripts\python.exe -m uvicorn backend.api:app --reload
+# Frontend: npm run dev

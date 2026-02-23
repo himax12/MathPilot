@@ -1,4 +1,5 @@
 # Math Mentor: logical-reasoning-agent
+
 A deterministic, multi-agent system for robust mathematical problem solving.
 
 ## Project Overview
@@ -18,21 +19,24 @@ The system accepts multimodal inputs (text, image, audio) and employs a Human-in
 The application is structured as a pipeline of specialized agents coordinated by a central Orchestrator.
 
 ### 1. Input Processing Layer
-*   **OCR Engine**: Uses Google Gemini Vision (Program-of-Thought prompting) to transcribe mathematical images into structured text. Includes transparency handling and contrast optimization.
-*   **ASR Engine**: Uses Google Cloud Speech-to-Text v2 (Chirp 2) to transcribe spoken mathematical queries with state-of-the-art accuracy, converting natural speech into formal problem statements.
+
+- **OCR Engine**: Uses Google Gemini Vision (Program-of-Thought prompting) to transcribe mathematical images into structured text. Includes transparency handling and contrast optimization.
+- **ASR Engine**: Uses Google Cloud Speech-to-Text v2 (Chirp 2) to transcribe spoken mathematical queries with state-of-the-art accuracy, converting natural speech into formal problem statements.
 
 ### 2. Cognitive Layer (The Agents)
-*   **Parser Agent**: Normalizes raw input into a structured schema, identifying variables, constraints, and specifically "what needs to be solved". Flags ambiguous input for user clarification.
-*   **Router Agent**: Classifies intent (e.g., Algebra, Probability, Calculus) to select the optimal solving strategy and filter the knowledge base.
-*   **Solver Agent**: The core reasoning engine. It adopts a "Program-of-Thought" approach, generating SymPy code to solve problems deterministically. It integrates RAG to access mathematical laws and reference material.
-*   **Verifier Agent**: A "Judge" model that validates solutions by:
-    1.  Numerical Substitution (plugging answers back into equations).
-    2.  Conceptual Sanity Checks (validating units, domains, and bounds).
-*   **Explainer (DeckGen + Solver)**: Rather than a redundant text summarizer, the system uses a specialized **Visual Deck Generator**. This component takes the Solver's logical trace and transforms it into a step-by-step visual explanation.
+
+- **Parser Agent**: Normalizes raw input into a structured schema, identifying variables, constraints, and specifically "what needs to be solved". Flags ambiguous input for user clarification.
+- **Router Agent**: Classifies intent (e.g., Algebra, Probability, Calculus) to select the optimal solving strategy and filter the knowledge base.
+- **Solver Agent**: The core reasoning engine. It adopts a "Program-of-Thought" approach, generating SymPy code to solve problems deterministically. It integrates RAG to access mathematical laws and reference material.
+- **Verifier Agent**: A "Judge" model that validates solutions by:
+  1.  Numerical Substitution (plugging answers back into equations).
+  2.  Conceptual Sanity Checks (validating units, domains, and bounds).
+- **Explainer (DeckGen + Solver)**: Rather than a redundant text summarizer, the system uses a specialized **Visual Deck Generator**. This component takes the Solver's logical trace and transforms it into a step-by-step visual explanation.
 
 ### 3. Memory & Persistence
-*   **Vector Store (FAISS)**: Stores embeddings of past interactions.
-*   **Relational DB (SQLite)**: Logs full conversation history, user feedback, and verification states.
+
+- **Vector Store (FAISS)**: Stores embeddings of past interactions.
+- **Relational DB (SQLite)**: Logs full conversation history, user feedback, and verification states.
 
 ## System Diagram
 
@@ -91,22 +95,24 @@ flowchart TD
 
 ## Technology Stack
 
-*   **Frontend**: Streamlit (Python)
-*   **LLM Orchestration**: Google Gemini 2.0 Flash & Pro
-*   **Symbolic Math**: SymPy, NumPy
-*   **Vector Search**: FAISS
-*   **Backend Framework**: Python 3.10+
+- **Frontend**: Streamlit (Python)
+- **LLM Orchestration**: Google Gemini 2.0 Flash & Pro
+- **Symbolic Math**: SymPy, NumPy
+- **Vector Search**: FAISS
+- **Backend Framework**: Python 3.10+
 
 ## Setup & Installation
 
 ### Prerequisites
-*   Python 3.11 or higher
-*   Google Gemini API Key (required)
-*   Google Cloud credentials (optional, for audio transcription)
+
+- Python 3.11 or higher
+- Google Gemini API Key (required)
+- Google Cloud credentials (optional, for audio transcription)
 
 ### Installation
 
 1.  **Clone the repository**
+
     ```bash
     git clone <repository_url>
     cd math-mentor
@@ -114,26 +120,30 @@ flowchart TD
 
 2.  **Install dependencies**
     It is recommended to use a virtual environment.
+
     ```bash
     # Using uv (recommended)
     uv sync
-    
+
     # Or using pip
     pip install -r requirements.txt
     ```
 
 3.  **Configure Environment**
     Copy `.env.example` to `.env` and configure:
+
     ```bash
     cp .env.example .env
     ```
-    
+
     **Minimum configuration (text input only):**
+
     ```env
     GEMINI_API_KEY=your_gemini_api_key_here
     ```
-    
+
     **Full configuration (audio + vision):**
+
     ```env
     GEMINI_API_KEY=your_gemini_api_key_here
     GOOGLE_APPLICATION_CREDENTIALS=path/to/gcp-credentials.json
@@ -143,10 +153,11 @@ flowchart TD
     ```
 
 4.  **Run the Application**
+
     ```bash
     # Using uv
     uv run streamlit run frontend/app.py
-    
+
     # Or with venv activated
     streamlit run frontend/app.py
     ```

@@ -7,6 +7,8 @@ import {
   useActiveMessage,
 } from "./components/ActiveMessageContext";
 import FeedbackDialog from "./components/FeedbackDialog";
+import { UpgradeModal } from "./components/UpgradeModal";
+import { RateLimitNotification } from "./components/RateLimitNotification";
 import { api } from "./lib/api";
 import { useAuth } from "./context/AuthContext";
 import Login from "./components/Login";
@@ -16,7 +18,7 @@ function MathPilotApp() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [currentEvent, setCurrentEvent] = useState<string | null>(null);
   const [pendingOcr, setPendingOcr] = useState<{
     latex: string;
@@ -28,6 +30,8 @@ function MathPilotApp() {
     wrongAnswer: string;
   } | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<any>(null);
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
 
   useEffect(() => {
@@ -99,7 +103,17 @@ function MathPilotApp() {
       setMessages((prev) => [...prev, assistantMsg]);
       fetchSessions();
     } catch (e: any) {
-      setError(e?.message ?? "Failed to reach backend. Is the server running?");
+      // Handle rate limit error
+      if (e.status === 429) {
+        setRateLimitInfo(e.limitInfo);
+        setError(
+          "You've reached your daily limit. Upgrade to continue solving!",
+        );
+      } else {
+        setError(
+          e?.message ?? "Failed to reach backend. Is the server running?",
+        );
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -207,7 +221,17 @@ function MathPilotApp() {
       setMessages((prev) => [...prev, assistantMsg]);
       fetchSessions();
     } catch (e: any) {
-      setError(e?.message ?? "Failed to reach backend during reasoning.");
+      // Handle rate limit error
+      if (e.status === 429) {
+        setRateLimitInfo(e.limitInfo);
+        setError(
+          "You've reached your daily limit. Upgrade to continue solving!",
+        );
+      } else {
+        setError(
+          e?.message ?? "Failed to reach backend. Is the server running?",
+        );
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -325,32 +349,41 @@ function MathPilotApp() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
-      <Sidebar
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        onNewChat={handleNewChat}
-        onSelectSession={handleSelectSession}
-        onRenameSession={handleRenameSession}
-        onDeleteSession={handleDeleteSession}
-        isMobileOpen={isMobileSidebarOpen}
-        onMobileClose={() => setIsMobileSidebarOpen(false)}
+    <>
+      {/* Rate Limit Notification */}
+      {rateLimitInfo && (
+        <RateLimitNotification
+          limitInfo={rateLimitInfo}
+          onUpgradeClick={() => {
+            setRateLimitInfo(null);
+            setShowUpgradeModal(true);
+          }}
+          onDismiss={() => setRateLimitInfo(null)}
+        />
+      )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgradeSuccess={() => {
+          fetchSessions();
+          setError(null);
+        }}
       />
 
-      {/* Middle Column: Main Chat */}
-      <main className="flex-1 flex flex-col relative h-full max-w-full overflow-hidden border-r border-border/20">
-        {/* Error Banner */}
-        {error && (
-          <div className="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 md:gap-3 bg-destructive/10 border border-destructive/30 text-destructive text-xs md:text-sm px-3 md:px-4 py-2 md:py-2.5 rounded-xl backdrop-blur-sm shadow-lg max-w-[calc(100%-2rem)] md:max-w-xl w-full mx-auto">
-            <span className="flex-1">{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="shrink-0 opacity-60 hover:opacity-100 transition-opacity text-lg leading-none touch-manipulation"
-            >
-              ×
-            </button>
-          </div>
-        )}
+      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
+        <Sidebar
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onNewChat={handleNewChat}
+          onSelectSession={handleSelectSession}
+          onRenameSession={handleRenameSession}
+          onDeleteSession={handleDeleteSession}
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileClose={() => setIsMobileSidebarOpen(false)}
+          onUpgradeClick={() => setShowUpgradeModal(true)}
+        />
         <ChatWindow
           messages={messages}
           onSendMessage={handleSendMessage}
@@ -363,76 +396,76 @@ function MathPilotApp() {
           onVoiceInput={handleVoiceInput}
           onMenuClick={() => setIsMobileSidebarOpen(true)}
         />
-      </main>
 
-      {/* Right Column: Context Inspector */}
-      {activeMessageIndex !== null && messages[activeMessageIndex] && (
-        <InspectorPane
-          message={messages[activeMessageIndex]}
-          onClose={() => setActiveMessageIndex(null)}
-        />
-      )}
+        {/* Right Column: Context Inspector */}
+        {activeMessageIndex !== null && messages[activeMessageIndex] && (
+          <InspectorPane
+            message={messages[activeMessageIndex]}
+            onClose={() => setActiveMessageIndex(null)}
+          />
+        )}
 
-      {/* OCR Verification Modal */}
-      {pendingOcr && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 md:p-4 overflow-y-auto">
-          <div className="bg-background border border-border/50 rounded-2xl p-4 md:p-6 shadow-2xl max-w-4xl w-full my-auto">
-            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-foreground">
-              Verify Math Extraction
-            </h2>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
-              Please check if the text below matches your image. Mathematical
-              notation is written in LaTeX. You can edit the text if there are
-              any errors.
-            </p>
-            <div className="flex flex-col gap-3 md:gap-4 mb-3 md:mb-4">
-              {pendingOcr.imageUrl && (
-                <div className="flex-1 bg-secondary/10 border border-border/30 rounded-xl overflow-hidden flex justify-center items-center min-h-[150px] md:min-h-[200px]">
-                  <img
-                    src={pendingOcr.imageUrl}
-                    alt="Uploaded math problem"
-                    className="max-w-full max-h-[250px] md:max-h-[400px] object-contain"
+        {/* OCR Verification Modal */}
+        {pendingOcr && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 md:p-4 overflow-y-auto">
+            <div className="bg-background border border-border/50 rounded-2xl p-4 md:p-6 shadow-2xl max-w-4xl w-full my-auto">
+              <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-foreground">
+                Verify Math Extraction
+              </h2>
+              <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
+                Please check if the text below matches your image. Mathematical
+                notation is written in LaTeX. You can edit the text if there are
+                any errors.
+              </p>
+              <div className="flex flex-col gap-3 md:gap-4 mb-3 md:mb-4">
+                {pendingOcr.imageUrl && (
+                  <div className="flex-1 bg-secondary/10 border border-border/30 rounded-xl overflow-hidden flex justify-center items-center min-h-[150px] md:min-h-[200px]">
+                    <img
+                      src={pendingOcr.imageUrl}
+                      alt="Uploaded math problem"
+                      className="max-w-full max-h-[250px] md:max-h-[400px] object-contain"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 flex flex-col">
+                  <textarea
+                    className="w-full flex-1 min-h-[120px] md:min-h-[200px] bg-secondary/20 border border-border/50 rounded-xl p-3 md:p-4 text-foreground font-mono text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                    value={pendingOcr.latex}
+                    onChange={(e) =>
+                      setPendingOcr({ ...pendingOcr, latex: e.target.value })
+                    }
                   />
                 </div>
-              )}
-              <div className="flex-1 flex flex-col">
-                <textarea
-                  className="w-full flex-1 min-h-[120px] md:min-h-[200px] bg-secondary/20 border border-border/50 rounded-xl p-3 md:p-4 text-foreground font-mono text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                  value={pendingOcr.latex}
-                  onChange={(e) =>
-                    setPendingOcr({ ...pendingOcr, latex: e.target.value })
-                  }
-                />
+              </div>
+              <div className="flex justify-end gap-2 md:gap-3 mt-4 md:mt-6">
+                <button
+                  onClick={() => setPendingOcr(null)}
+                  className="px-4 md:px-5 py-2 rounded-xl hover:bg-secondary/50 text-foreground transition-colors text-sm md:text-base touch-manipulation"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleConfirmOcr(pendingOcr)}
+                  className="px-4 md:px-5 py-2 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity flex items-center gap-2 text-sm md:text-base touch-manipulation"
+                >
+                  Solve Problem
+                </button>
               </div>
             </div>
-            <div className="flex justify-end gap-2 md:gap-3 mt-4 md:mt-6">
-              <button
-                onClick={() => setPendingOcr(null)}
-                className="px-4 md:px-5 py-2 rounded-xl hover:bg-secondary/50 text-foreground transition-colors text-sm md:text-base touch-manipulation"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleConfirmOcr(pendingOcr)}
-                className="px-4 md:px-5 py-2 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity flex items-center gap-2 text-sm md:text-base touch-manipulation"
-              >
-                Solve Problem
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Feedback Modal */}
-      {pendingFeedback && (
-        <FeedbackDialog
-          problem={pendingFeedback.problem}
-          wrongAnswer={pendingFeedback.wrongAnswer}
-          onSubmit={handleSubmitFeedback}
-          onCancel={() => setPendingFeedback(null)}
-        />
-      )}
-    </div>
+        {/* Feedback Modal */}
+        {pendingFeedback && (
+          <FeedbackDialog
+            problem={pendingFeedback.problem}
+            wrongAnswer={pendingFeedback.wrongAnswer}
+            onSubmit={handleSubmitFeedback}
+            onCancel={() => setPendingFeedback(null)}
+          />
+        )}
+      </div>
+    </>
   );
 }
 

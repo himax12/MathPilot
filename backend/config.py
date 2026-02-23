@@ -27,17 +27,19 @@ class Config:
     
     # Gemini API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-    GEMINI_VISION_MODEL: str = os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
+    GEMINI_MODEL_FLASH: str = os.getenv("GEMINI_MODEL_FLASH", "gemini-2.5-pro")
+    GEMINI_VISION_MODEL: str = os.getenv("GEMINI_VISION_MODEL", "gemini-1.5-pro")
     
     # Google Cloud (Vertex AI / Vision / STT)
+    USE_VERTEX_AI: bool = os.getenv("USE_VERTEX_AI", "false").lower() == "true"
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     GCP_PROJECT_ID: str = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_PROJECT_ID", "")
     GCP_LOCATION: str = os.getenv("GCP_LOCATION", "us-central1")
     
     # Google Speech-to-Text V2 (Chirp 2)
-    STT_LOCATION: str = os.getenv("STT_LOCATION", "us-central1")
-    STT_RECOGNIZER: str = os.getenv("STT_RECOGNIZER", "chirp-2-recognizer") # ID of created recognizer
+    STT_LOCATION: str = os.getenv("STT_LOCATION", "global")  # Changed to global for compatibility
+    STT_RECOGNIZER: str = os.getenv("STT_RECOGNIZER", "_") # Use "_" for default recognizer
     
     # ==========================================================
     # EXECUTION SETTINGS
@@ -97,8 +99,11 @@ class Config:
         """Validate required configuration."""
         errors = []
         
-        if not cls.GEMINI_API_KEY:
-            errors.append("GEMINI_API_KEY is required")
+        if not cls.GEMINI_API_KEY and not cls.USE_VERTEX_AI:
+            errors.append("GEMINI_API_KEY is required when USE_VERTEX_AI is false")
+        
+        if cls.USE_VERTEX_AI and not cls.GCP_PROJECT_ID:
+            errors.append("GCP_PROJECT_ID is required when USE_VERTEX_AI is true")
         
         if errors:
             raise ValueError(f"Configuration errors: {', '.join(errors)}")
@@ -111,6 +116,7 @@ class Config:
         return f"""
 Math Mentor Configuration:
   - Model: {cls.GEMINI_MODEL}
+  - Use Vertex AI: {cls.USE_VERTEX_AI}
   - Executor Timeout: {cls.EXECUTOR_TIMEOUT_SECONDS}s
   - OCR High Confidence: {cls.OCR_CONFIDENCE_HIGH}
   - HITL Threshold: {cls.HITL_REVIEW_THRESHOLD}

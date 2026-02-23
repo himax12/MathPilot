@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import dataclasses
@@ -9,6 +10,13 @@ import base64
 import logging
 import sys
 import traceback
+import os
+import jwt
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from fastapi import Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from datetime import datetime, timedelta
 
 # ─── Logging Setup ────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -39,6 +47,15 @@ try:
 except Exception as e:
     logger.warning(f"⚠️  OCR import failed (non-fatal): {e}")
     def process_image(b64): return {"latex": "", "problem_data": {}}
+
+try:
+    logger.info("Importing ASR MathASR...")
+    from backend.input.asr import MathASR
+    asr_handler = MathASR()
+    logger.info("✅ ASR imported and initialized OK")
+except Exception as e:
+    logger.warning(f"⚠️  ASR init failed (non-fatal): {e}")
+    asr_handler = None
 
 # ─── FastAPI App ───────────────────────────────────────────────────────────────
 app = FastAPI(title="MathPilot API")
@@ -78,13 +95,53 @@ logger.info("=" * 60)
 class ChatRequest(BaseModel):
     message: str | dict  # str for text, dict for OCR {"latex": "...", "problem_data": {...}}
 
+class AuthGoogleRequest(BaseModel):
+    credential: str
+
 class FeedbackRequest(BaseModel):
     problem: str
     wrong_answer: str
     correct_answer: str
     explanation: str
 
+class TitleUpdateRequest(BaseModel):
+    title: str
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Auth Helpers ──────────────────────────────────────────────────────────────
+security = HTTPBearer()
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+JWT_SECRET = os.getenv("JWT_SECRET", "math-pilot-super-secret-key-123")
+ALGORITHM = "HS256"
+
+def verify_google_token(token: str):
+    try:
+        # Specify the CLIENT_ID of the app that accesses the backend:
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        return idinfo
+    except ValueError:
+        # Invalid token
+        return None
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=7)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication token")
+        return payload
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+
 def _serialize_dict(obj):
     """Helper to heavily serialize dataclasses or pydantic objects safely to dict"""
     if obj is None:
@@ -99,13 +156,43 @@ def _serialize_dict(obj):
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
+@app.post("/api/auth/google")
+def auth_google(request: AuthGoogleRequest):
+    idinfo = verify_google_token(request.credential)
+    if not idinfo:
+        raise HTTPException(status_code=400, detail="Invalid Google token")
+    
+    user_id = idinfo['sub']
+    email = idinfo.get('email')
+    name = idinfo.get('name')
+    picture = idinfo.get('picture')
+    
+    # Save user info to DB
+    orchestrator.solver.memory.add_user_info(user_id, email, name, picture)
+    
+    # Create internal JWT
+    token = create_access_token({"sub": user_id, "email": email, "name": name})
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user_id,
+            "email": email,
+            "name": name,
+            "picture": picture
+        }
+    }
+
 @app.post("/api/chat")
-def chat(request: ChatRequest):
-    logger.info(f"POST /api/chat — message type: {type(request.message).__name__}, preview: {str(request.message)[:80]}")
+def chat(request: ChatRequest, user: dict = Depends(get_current_user)):
+    user_id = user["sub"]
+    orchestrator.solver.memory.user_id = user_id
+    logger.info(f"POST /api/chat — user: {user_id}, message type: {type(request.message).__name__}, preview: {str(request.message)[:80]}")
     
     def generate():
         try:
-            for chunk in orchestrator.run_stream(request.message):
+            for chunk in orchestrator.run_stream(request.message, user_id=user_id):
                 if chunk["type"] == "final":
                     result = chunk["data"]
                     logger.info(f"Orchestrator returned status={result.get('status', 'N/A')}, confidence={result.get('confidence', 'N/A')}")
@@ -143,19 +230,40 @@ def chat(request: ChatRequest):
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 @app.get("/api/sessions")
-def get_sessions():
-    logger.debug("GET /api/sessions")
+def get_sessions(user: dict = Depends(get_current_user)):
+    user_id = user["sub"]
+    logger.debug(f"GET /api/sessions — user: {user_id}")
     try:
-        sessions = orchestrator.solver.memory.get_all_sessions()
+        sessions = orchestrator.solver.memory.get_all_sessions(user_id)
         logger.debug(f"Returning {len(sessions)} sessions")
         return {"sessions": sessions}
     except Exception as e:
         logger.error(f"❌ /api/sessions failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/sessions/{session_id}")
+def update_session(session_id: str, request: TitleUpdateRequest, user: dict = Depends(get_current_user)):
+    logger.info(f"PUT /api/sessions/{session_id} — user: {user['sub']}, title: {request.title}")
+    try:
+        orchestrator.solver.memory.update_title(request.title, session_id)
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"❌ /api/sessions/{session_id} update failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/sessions/{session_id}")
+def delete_session(session_id: str, user: dict = Depends(get_current_user)):
+    logger.info(f"DELETE /api/sessions/{session_id} — user: {user['sub']}")
+    try:
+        success = orchestrator.solver.memory.delete_session(session_id)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"❌ /api/sessions/{session_id} deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/sessions/{session_id}/restore")
-def restore_session(session_id: str):
-    logger.info(f"POST /api/sessions/{session_id}/restore")
+def restore_session(session_id: str, user: dict = Depends(get_current_user)):
+    logger.info(f"POST /api/sessions/{session_id}/restore — user: {user['sub']}")
     try:
         success = orchestrator.solver.memory.restore_session_by_id(session_id)
         if success:
@@ -188,8 +296,8 @@ def restore_session(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/sessions/clear")
-def clear_session():
-    logger.info("POST /api/sessions/clear")
+def clear_session(user: dict = Depends(get_current_user)):
+    logger.info(f"POST /api/sessions/clear — user: {user['sub']}")
     try:
         orchestrator.clear_conversation()
         return {"success": True}
@@ -198,8 +306,8 @@ def clear_session():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/feedback")
-def submit_feedback(request: FeedbackRequest):
-    logger.info(f"POST /api/feedback — problem: {request.problem[:60]}")
+def submit_feedback(request: FeedbackRequest, user: dict = Depends(get_current_user)):
+    logger.info(f"POST /api/feedback — user: {user['sub']}, problem: {request.problem[:60]}")
     try:
         orchestrator.solver.memory.add_feedback(
             problem=request.problem,
@@ -213,8 +321,8 @@ def submit_feedback(request: FeedbackRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...), type: str = Form("image")):
-    logger.info(f"POST /api/upload — filename: {file.filename}, type: {type}")
+async def upload_file(file: UploadFile = File(...), type: str = Form("image"), user: dict = Depends(get_current_user)):
+    logger.info(f"POST /api/upload — user: {user['sub']}, filename: {file.filename}, type: {type}")
     if type == "image":
         try:
             contents = await file.read()
@@ -233,3 +341,50 @@ async def upload_file(file: UploadFile = File(...), type: str = Form("image")):
             raise HTTPException(status_code=500, detail=str(e))
 
     return {"success": False, "error": "Unsupported type"}
+
+
+@app.post("/api/asr")
+async def transcribe_audio(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    logger.info(f"POST /api/asr — user: {user['sub']}, filename: {file.filename}")
+    if not asr_handler:
+        raise HTTPException(status_code=501, detail="ASR service not available (check GCP config)")
+        
+    try:
+        contents = await file.read()
+        logger.debug(f"Read {len(contents)} bytes from audio file")
+        
+        result = asr_handler.transcribe(contents)
+        logger.info(f"ASR result: text='{result.get('text', '')}', confidence={result.get('confidence', 0)}")
+        
+        if result.get("error"):
+            return {"success": False, "error": result["error"]}
+            
+        return {
+            "success": True,
+            "text": result.get("text", ""),
+            "confidence": result.get("confidence", 0)
+        }
+    except Exception as e:
+        logger.error(f"❌ /api/asr failed: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Serve static files from the built React app (dist folder)
+# We expect the 'dist' contents to be placed in backend/static during build
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        # Prevent interfering with API routes
+        if full_path.startswith("api"):
+             raise HTTPException(status_code=404)
+             
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+else:
+    logger.warning(f"⚠️ Static directory not found at {static_dir}. Frontend will not be served.")

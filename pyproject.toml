@@ -20,6 +20,8 @@ dependencies = [
     "sentence-transformers>=5.2.0",
     "sse-starlette>=2.2.0",
     "streamlit>=1.53.0",
+    "google-auth>=2.35.0",
+    "pyjwt>=2.9.0",
     "sympy>=1.14.0",
     "uvicorn>=0.34.0",
 ]

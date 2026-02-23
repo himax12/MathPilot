@@ -73,16 +73,20 @@ class Orchestrator:
                 last_result = chunk["data"]
         return last_result
 
-    def run_stream(self, user_input):
+    def run_stream(self, user_input, user_id=None):
         """
         Run the full SOTA math solving pipeline.
         
         Args:
             user_input: The math problem (text as string OR dictionary with 'latex' and 'problem_data').
+            user_id: Optional ID of the user (for session management).
             
         Returns:
             Generator yielding NDJSON chunks: {"type": "event", "data": "..."} and finally {"type": "final", "data": {...}}
         """
+        if user_id:
+            self.solver.memory.user_id = user_id
+            
         # Extract displayably text if input is a dict
         display_input = user_input.get("latex", "") if isinstance(user_input, dict) else str(user_input)
         
